@@ -1,0 +1,72 @@
+<chronosconfig>
+    <exchange name="chronos">
+        <global name="growth_entry" value="0"/>
+        <global name="spread_entry" value =".7"/>
+        <global name="growth_exit" value ="0"/>
+        <global name="spread_exit" value =".5"/>
+        <global name="wallet_exposure" value="1500"/>
+    </exchange>
+
+    <exchange name="bitfinex">
+        <global name="ask" value ="ask"/>
+        <global name="bid" value ="bid"/>
+        <global name="last" value ="last_price"/>
+        <global name="bitcoin" value ="btcusd"/>
+        <global name="litecoin" value ="ltcusd"/>
+        <global name="ether" value ="ethusd"/>
+    </exchange>
+
+    <exchange name="bitstamp">
+        <global name="ask" value ="ask"/>
+        <global name="bid" value ="bid"/>
+        <global name="last" value ="last"/>
+        <global name="bitcoin" value ="btc"/>
+        <global name="litecoin" value ="ltc"/>
+    </exchange>
+
+    <exchange name="btce">
+        <global name="bitcoin" value ="btc_usd"/>
+        <global name="litecoin" value ="ltc_usd"/>
+        <global name="ether" value ="eth_usd"/>
+    </exchange>
+
+    <exchange name="gdax">
+        <global name="ask" value ="ask"/>
+        <global name="bid" value ="bid"/>
+        <global name="last" value ="price"/>
+        <global name="bitcoin" value ="BTC-USD"/>
+        <global name="litecoin" value ="LTC-USD"/>
+        <global name="ether" value ="ETH-USD"/>
+    </exchange>
+
+    <exchange name="gemini">
+        <global name="ask" value ="ask"/>
+        <global name="bid" value ="bid"/>
+        <global name="last" value ="last"/>
+        <global name="bitcoin" value ="btcusd"/>
+        <global name="ether" value ="ethusd"/>
+    </exchange>
+
+    <exchange name="kraken">
+        <global name="ask" value ="a"/>
+        <global name="bid" value ="b"/>
+        <global name="last" value ="c"/>
+        <global name="bitcoin" value ="XXBTZUSD"/>
+        <global name="litecoin" value ="XLTCZUSD"/>
+        <global name="ether" value ="XETHZUSD"/>
+        <global name="key_path" value="/Users/mcariello/PycharmProjects/chronos-kairos/chronos/kraken_exchange/kraken.key"/>
+    </exchange>
+
+    <exchange name="poloniex">
+    <global name="ask" value ="lowestAsk"/>
+    <global name="bid" value ="highestBid"/>
+    <global name="last" value ="last"/>
+    <global name="bitcoin" value ="USDT_BTC"/>
+    <global name="litecoin" value ="USDT_LTC"/>
+    <global name="ether" value ="USDT_ETH"/>
+    </exchange>
+
+
+
+
+</chronosconfig>

@@ -1,2 +1,2 @@
 # chronos
-Its a 
+Its a bot that grows money on trees
