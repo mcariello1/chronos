@@ -164,12 +164,13 @@ class Chronos(object):
                                 #exchange1.spread,
                                 #exchange1.growth_rate)
 
-            excel.log_excel(exchange1.litecoin_USD_lasttrade,
-                            exchange2.litecoin_USD_lasttrade,
-                            spread_tracker.spread,
-                            spread_tracker.growth_rate)
+            #excel.log_excel(exchange1.litecoin_USD_lasttrade,
+             #               exchange2.litecoin_USD_lasttrade,
+              #              spread_tracker.spread,
+               #             spread_tracker.growth_rate)
 
             if spread_tracker.growth_rate <= self.litecoin_growth_exit and spread_tracker.spread <= self.litecoin_spread_exit:
+                log.debug("Exiting arbitrage short/buy for {0}/{1}".format(exchange1.name, exchange2.name))
                 return True
             else:
                 continue
@@ -200,10 +201,10 @@ class Chronos(object):
                             #exchange1.growth_rate)
 
         #print 'Array: {0}\n'.format(exchange1.trailing_array)
-        excel.log_excel(exchange1.litecoin_USD_lasttrade,
-                        exchange2.litecoin_USD_lasttrade,
-                        spread_tracker.spread,
-                        spread_tracker.growth_rate)
+        #excel.log_excel(exchange1.litecoin_USD_lasttrade,
+         #               exchange2.litecoin_USD_lasttrade,
+          #              spread_tracker.spread,
+           #             spread_tracker.growth_rate)
 
         if spread_tracker.growth_rate >= self.litecoin_growth_entry and spread_tracker.spread >= self.litecoin_spread_entry:
             return True
@@ -233,10 +234,10 @@ class Chronos(object):
         exchange_long.share_values = int(self.config['chronos']['wallet_exposure'])
         exchange_long.start_arbitrage()
 
-        excel.log_excel_enter(short_shares=exchange_short.shares,
-                              short_coin=short_exchange.litecoin_USD_lasttrade,
-                              long_shares=exchange_long.shares,
-                              long_coin=long_exchange.litecoin_USD_lasttrade)
+        #excel.log_excel_enter(short_shares=exchange_short.shares,
+         #                     short_coin=short_exchange.litecoin_USD_lasttrade,
+          #                    long_shares=exchange_long.shares,
+           #                   long_coin=long_exchange.litecoin_USD_lasttrade)
 
         self.wait_for_exit(short_exchange, long_exchange, excel, spread_tracker)
 
@@ -248,11 +249,11 @@ class Chronos(object):
         exchange_long.share_values = int(self.config['chronos']['wallet_exposure'])
         profit2 = exchange_long.end_arbitrage()
         total_profit = (float(profit1) + float(profit2))
-        excel.log_excel_exit(short_shares=exchange_short.shares,
-                              short_coin=short_exchange.litecoin_USD_lasttrade,
-                              long_shares=exchange_long.shares,
-                              long_coin=long_exchange.litecoin_USD_lasttrade,
-                             profit=total_profit)
+        #excel.log_excel_exit(short_shares=exchange_short.new_shares,
+           #                   short_coin=short_exchange.litecoin_USD_lasttrade,
+            #                  long_shares=exchange_long.shares,
+             #                 long_coin=long_exchange.litecoin_USD_lasttrade,
+              #               profit=total_profit)
 
 
         #print "Profitited : {0}".format((float(profit1) + float(profit2)))
@@ -324,6 +325,7 @@ class Chronos(object):
         kraken_api = krakenex.API()
         kraken_api.load_key(str(self.config['kraken']['key_path']))
         return kraken(fake_transactions=fake_transactions,
+                      order_volume= self.config['chronos']['wallet_exposure'],
                       exchange_api=kraken_api,
                       ask=str(self.config['kraken']['ask']),
                       bid=str(self.config['kraken']['bid']),

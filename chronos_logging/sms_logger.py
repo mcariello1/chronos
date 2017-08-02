@@ -19,4 +19,5 @@ class SmsLogger(object):
         """
         self.voice.send_sms(4158872108,'Profit of ${0} with {1} as short and {2} as long'.format(profit, short_exchange_name,
                                                                              long_exchange_name))
-    # voice.send_sms(6313971667, 'Bot Test: Text me if you get it =)')
+        self.voice.send_sms(6313971667, 'Profit of ${0} with {1} as short and {2} as long'.format(profit, short_exchange_name,
+                                                                             long_exchange_name))
