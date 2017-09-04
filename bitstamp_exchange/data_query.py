@@ -24,7 +24,7 @@ class BitstampCoinData(CommonCoinData):
         self.bitcoin_key = bitcoin
         self.ether_key = ether
         self.bitstamp = exchange_api
-        self.name = 'bitstamp_exchange'
+        self.name = 'bitstamp'
         super(BitstampCoinData, self).__init__(exchange=self, request_duration=REQUEST_DURATION)
 
 

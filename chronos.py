@@ -7,12 +7,11 @@ from collections import defaultdict
 import bitfinex
 import bitstamp.client
 import btceapi
-import gdax
 import krakenex
 from tabulate import tabulate
 from bitstamp_exchange.bitstamp import Bitstamp as bitstp
 from btce_exchange.btce import Btce as btce
-from gdax_exchange.gdax import Gdax as coinbase
+from gdax_exchange.gdax_exchange import Gdax as coinbase
 from gemini.client import Client
 from gemini_exchange.data_query import GeminiCoinData as gemini
 from kraken_exchange.kraken import Kraken as kraken
@@ -25,6 +24,7 @@ from chronos_logging.excel_logger import ExcelLogger
 from chronos_logging.sms_logger import SmsLogger
 from chronos_logging.logger import *
 from spread_tracking import SpreadTracking
+from collections import OrderedDict
 
 
 
@@ -41,18 +41,19 @@ class Chronos(object):
         self.bitfinexexchange= self.start_bitfx_thread()
         self.coinbaseexchange = self.start_gdax_thread()
         self.poloniexexchange = self.start_poloniex_thread()
-        self.litecoin_growth_entry = float(self.config['chronos']['growth_entry'])
-        self.litecoin_spread_entry = float(self.config['chronos']['spread_entry'])
-        self.litecoin_growth_exit = float(self.config['chronos']['growth_exit'])
-        self.litecoin_spread_exit = float(self.config['chronos']['spread_exit'])
+        self.growth_entry = float(self.config['chronos']['growth_entry'])
+        self.spread_entry = float(self.config['chronos']['spread_entry'])
+        self.growth_exit = float(self.config['chronos']['growth_exit'])
+        self.spread_exit = float(self.config['chronos']['spread_exit'])
         self.max_array_size = 2
         self.book = None
-        self.start_arbitrage_deamon(self.krakenexchange, self.poloniexexchange)
-        self.start_arbitrage_deamon(self.krakenexchange, self.bitstampexchange)
-        self.start_arbitrage_deamon(self.krakenexchange, self.coinbaseexchange)
-        self.start_arbitrage_deamon(self.poloniexexchange, self.coinbaseexchange)
-        self.start_arbitrage_deamon(self.poloniexexchange, self.bitstampexchange)
-        self.start_arbitrage_deamon(self.coinbaseexchange, self.bitstampexchange)
+        self.start_arbitrage_deamon(self.poloniexexchange, self.coinbaseexchange, 'ether')
+        self.start_arbitrage_deamon(self.poloniexexchange, self.krakenexchange, 'ether')
+        self.start_arbitrage_deamon(self.krakenexchange, self.coinbaseexchange, 'ether')
+        self.start_arbitrage_deamon(self.poloniexexchange, self.coinbaseexchange, 'bitcoin')
+        self.start_arbitrage_deamon(self.poloniexexchange, self.krakenexchange, 'bitcoin')
+        self.start_arbitrage_deamon(self.krakenexchange, self.coinbaseexchange, 'bitcoin')
+
         self.tracker = []
         self.query_list = []
         if not os.path.exists('./results/excels/{}'.format(self.time)):
@@ -61,13 +62,13 @@ class Chronos(object):
 
 
 
-    def start_arbitrage_deamon(self, high_exchange, low_exchange):
+    def start_arbitrage_deamon(self, high_exchange, low_exchange, coin):
         """
-        Starts deamon that tracks coin informationf
+        Starts deamon that tracks coin information
         :return: None
         """
-        log.debug("Starting {0} and {1} log".format(high_exchange, low_exchange))
-        arbitrage_bot = threading.Thread(target=self.perform_litecoin_arbitrage_thread, args=(high_exchange,low_exchange))
+        log.debug("Starting {0} and {1} log for {2}".format(high_exchange, low_exchange, coin))
+        arbitrage_bot = threading.Thread(target=self.perform_litecoin_arbitrage_thread, args=(high_exchange,low_exchange, coin))
         arbitrage_bot.daemon = True
         arbitrage_bot.start()
         return
@@ -82,18 +83,19 @@ class Chronos(object):
             time.sleep(3)
             for tracker in self.tracker:
                 exchanges = "{0}/{1}".format(tracker.short_exchange, tracker.long_exchange)
-                self.query_list.append([exchanges,
-                                        tracker.short_coin,
-                                        tracker.long_coin,
-                                        tracker.spread,
-                                        tracker.growth_rate])
+                self.query_list.append(OrderedDict([("Exchange", exchanges),
+                                                    ("Coin", tracker.coin_type),
+                                                    ("Short", tracker.short_coin),
+                                                    ("Long", tracker.long_coin),
+                                                    ("Spread", tracker.spread),
+                                                    ("Growth Rate", tracker.growth_rate)]))
 
-            print tabulate(self.query_list, ["Exchanges", "Short", "Long", "Spread", "Growth Rate"])
+            print tabulate(self.query_list, headers='keys')
             print "\n"
             self.query_list = []
 
 
-    def perform_litecoin_arbitrage_thread(self, exchangex, exchangey):
+    def perform_litecoin_arbitrage_thread(self, exchangex, exchangey, coin):
         """
         Given two exchange objects this thread function will continually check for entry criteria
         between each exchange with both as the short and as the long
@@ -106,14 +108,14 @@ class Chronos(object):
         excel_log = ExcelLogger(exchangex.name, exchangey.name, self.time)
         excel_log1 = ExcelLogger(exchangey.name, exchangex.name, self.time)
         log.debug("Creating Excel loggers {0} and {1}".format(exchangey.name, exchangex.name))
-        spread_tracker = SpreadTracking(self.max_array_size, exchangex.name, exchangey.name)
-        spread_tracker1 = SpreadTracking(self.max_array_size, exchangey.name, exchangex.name)
+        spread_tracker = SpreadTracking(self.max_array_size, exchangex.name, exchangey.name, coin)
+        spread_tracker1 = SpreadTracking(self.max_array_size, exchangey.name, exchangex.name, coin)
         self.tracker.append(spread_tracker)
         self.tracker.append(spread_tracker1)
         while True:
             time.sleep(3)
-            entry_check1 = self.check_for_entry_criteria(exchangex, exchangey, excel_log, spread_tracker)
-            entry_check2 = self.check_for_entry_criteria(exchangey, exchangex, excel_log1, spread_tracker1)
+            entry_check1 = self.check_for_entry_criteria(exchangex, exchangey, excel_log, spread_tracker, coin)
+            entry_check2 = self.check_for_entry_criteria(exchangey, exchangex, excel_log1, spread_tracker1, coin)
             if entry_check1:
                 # exchange x borrow lite coin, sell it,
                 # buy exchange y
@@ -121,7 +123,7 @@ class Chronos(object):
                 #TODO This is where real transactions will be intitated depending on debug configuration
                 #print 'Short sell on {0} and buy on {1} '.format(exchangex.name, exchangey.name)
                 log.debug("Entering arbitrage short/buy for {0}/{1}".format(exchangex.name, exchangey.name))
-                self.do_fake_arbitrage(short_exchange=exchangex, long_exchange=exchangey, excel=excel_log, spread_tracker=spread_tracker)
+                self.do_fake_arbitrage(short_exchange=exchangex, long_exchange=exchangey, excel=excel_log, spread_tracker=spread_tracker, coin=coin)
 
 
             if entry_check2:
@@ -130,10 +132,10 @@ class Chronos(object):
                 # start check for exit loop
                 #print 'Short sell on {0} and buy on {1} '.format(exchangey.name, exchangex.name)
                 log.debug("Entering arbitrage buy/short for {0}/{1}".format(exchangey.name, exchangex.name))
-                self.do_fake_arbitrage(short_exchange=exchangey, long_exchange=exchangex, excel=excel_log1, spread_tracker=spread_tracker1)
+                self.do_fake_arbitrage(short_exchange=exchangey, long_exchange=exchangex, excel=excel_log1, spread_tracker=spread_tracker1, coin=coin)
 
 
-    def wait_for_exit(self, exchange1, exchange2, excel, spread_tracker):
+    def wait_for_exit(self, exchange1, exchange2, excel, spread_tracker, coin):
         """
         Given two exchange objects and its spread tracker it determines,
         if the short exchange is ready to exit the spread
@@ -145,7 +147,9 @@ class Chronos(object):
         """
         while True:
             time.sleep(3)
-            spread_tracker.get_spread(exchange1.litecoin_USD_lasttrade, exchange2.litecoin_USD_lasttrade)
+            bid = getattr(exchange1, "{0}_USD_bid".format(coin))
+            ask = getattr(exchange2, "{0}_USD_ask".format(coin))
+            spread_tracker.get_spread(bid, ask)
             spread_tracker.add_spread_to_array()
 
             try:
@@ -169,14 +173,14 @@ class Chronos(object):
               #              spread_tracker.spread,
                #             spread_tracker.growth_rate)
 
-            if spread_tracker.growth_rate <= self.litecoin_growth_exit and spread_tracker.spread <= self.litecoin_spread_exit:
+            if spread_tracker.growth_rate <= self.growth_exit and spread_tracker.spread <= self.spread_exit:
                 log.debug("Exiting arbitrage short/buy for {0}/{1}".format(exchange1.name, exchange2.name))
                 return True
             else:
                 continue
 
 
-    def check_for_entry_criteria(self, exchange1, exchange2, excel, spread_tracker):
+    def check_for_entry_criteria(self, exchange1, exchange2, excel, spread_tracker, coin):
         """
         Given a short exchange and a long exchange it determines if its ready to enter
         based on the spread and growth rate
@@ -186,7 +190,9 @@ class Chronos(object):
         :param spread_tracker:
         :return:
         """
-        spread_tracker.get_spread(exchange1.litecoin_USD_lasttrade, exchange2.litecoin_USD_lasttrade)
+        bid = getattr(exchange1, "{0}_USD_bid".format(coin))
+        ask = getattr(exchange2, "{0}_USD_ask".format(coin))
+        spread_tracker.get_spread(bid, ask)
         spread_tracker.add_spread_to_array()
         try:
             spread_tracker.get_growth_rate()
@@ -206,13 +212,13 @@ class Chronos(object):
           #              spread_tracker.spread,
            #             spread_tracker.growth_rate)
 
-        if spread_tracker.growth_rate >= self.litecoin_growth_entry and spread_tracker.spread >= self.litecoin_spread_entry:
+        if spread_tracker.growth_rate >= self.growth_entry and spread_tracker.spread >= self.spread_entry:
             return True
         else:
             return False
 
 
-    def do_fake_arbitrage(self, short_exchange, long_exchange, excel, spread_tracker):
+    def do_fake_arbitrage(self, short_exchange, long_exchange, excel, spread_tracker, coin):
         """
         Performs an arbitrage on a given opportunity between two exchanges and performs
         fake simulated transactions
@@ -222,15 +228,15 @@ class Chronos(object):
         :param spread_tracker:
         :return:
         """
-        exchange_short = short_exchange.start_transaction()
-        exchange_long = long_exchange.start_transaction()
+        exchange_short = short_exchange.start_transaction(coin)
+        exchange_long = long_exchange.start_transaction(coin)
 
         #TODO have this automatically happen when start transaction gets called through configurations
-        exchange_short.short_sell = short_exchange.litecoin_USD_lasttrade
+        exchange_short.short_sell = getattr(short_exchange, "{0}_USD_bid".format(coin))
         exchange_short.share_values = int(self.config['chronos']['wallet_exposure'])
         exchange_short.start_arbitrage()
 
-        exchange_long.buy = long_exchange.litecoin_USD_lasttrade
+        exchange_long.buy = getattr(long_exchange, "{0}_USD_ask".format(coin))
         exchange_long.share_values = int(self.config['chronos']['wallet_exposure'])
         exchange_long.start_arbitrage()
 
@@ -239,13 +245,13 @@ class Chronos(object):
           #                    long_shares=exchange_long.shares,
            #                   long_coin=long_exchange.litecoin_USD_lasttrade)
 
-        self.wait_for_exit(short_exchange, long_exchange, excel, spread_tracker)
+        self.wait_for_exit(short_exchange, long_exchange, excel, spread_tracker, coin)
 
-        exchange_short.buy_back_price = short_exchange.litecoin_USD_lasttrade
+        exchange_short.buy_back_price = getattr(short_exchange, "{0}_USD_ask".format(coin))
         exchange_short.share_values = int(self.config['chronos']['wallet_exposure'])
         profit1 = exchange_short.end_arbitrage()
 
-        exchange_long.sell_price = long_exchange.litecoin_USD_lasttrade
+        exchange_long.sell_price = getattr(long_exchange, "{0}_USD_bid".format(coin))
         exchange_long.share_values = int(self.config['chronos']['wallet_exposure'])
         profit2 = exchange_long.end_arbitrage()
         total_profit = (float(profit1) + float(profit2))
@@ -325,7 +331,6 @@ class Chronos(object):
         kraken_api = krakenex.API()
         kraken_api.load_key(str(self.config['kraken']['key_path']))
         return kraken(fake_transactions=fake_transactions,
-                      order_volume= self.config['chronos']['wallet_exposure'],
                       exchange_api=kraken_api,
                       ask=str(self.config['kraken']['ask']),
                       bid=str(self.config['kraken']['bid']),
@@ -405,9 +410,10 @@ class Chronos(object):
         based on its exchanges limit restrictions
         :return:
         """
-        gdax_api = gdax.PublicClient()
+
+
+
         return coinbase(fake_transactions=fake_transactions,
-                        exchange_api=gdax_api,
                         ask=str(self.config['gdax']['ask']),
                         bid=str(self.config['gdax']['bid']),
                         last=str(self.config['gdax']['last']),

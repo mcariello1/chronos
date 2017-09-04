@@ -2,7 +2,7 @@
 
 
 class SpreadTracking(object):
-    def __init__(self, max_array, short_exchange, long_exchange):
+    def __init__(self, max_array, short_exchange, long_exchange, coin):
         self.max_array_size = max_array
         self.spread = 0
         self.trailing_array = []
@@ -11,6 +11,7 @@ class SpreadTracking(object):
         self.long_exchange = long_exchange
         self.short_coin = 0
         self.long_coin = 0
+        self.coin_type = coin
 
     def get_growth_rate(self):
         """

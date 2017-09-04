@@ -17,7 +17,7 @@ class GeminiCoinData(CommonCoinData):
         self.ether_key = ether
         self.query_thread = None
         self.gemini = exchange_api
-        self.name = 'gemini_exchange'
+        self.name = 'gemini'
         self.trailing_array = []
         self.spread = 0
         self.growth_rate = 0

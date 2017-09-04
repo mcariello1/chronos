@@ -10,9 +10,9 @@ class Poloniex(data_query):
         self.growth_rate = 0
         self.fake_transactions = fake_transactions
 
-    def start_transaction(self):
+    def start_transaction(self, coin):
         """
         Creates fake transaction object when transaction is needed to be made
         :return:
         """
-        return self.fake_transactions(self.name)
+        return self.fake_transactions(self.name, coin)
