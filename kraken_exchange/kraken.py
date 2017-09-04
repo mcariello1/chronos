@@ -1,8 +1,8 @@
 from data_query import KrakenCoinData as data_query
 
 class Kraken(data_query):
-    def __init__(self, fake_transactions, exchange_api, order_volume, ask=None, bid=None, last=None, bitcoin=None, litecoin=None, ether=None):
-        super(Kraken, self).__init__(exchange_api=exchange_api, order_volume=order_volume, ask=ask,bid=bid, last=last, bitcoin=bitcoin,litecoin=litecoin,ether=ether)
+    def __init__(self, fake_transactions, exchange_api, ask=None, bid=None, last=None, bitcoin=None, litecoin=None, ether=None):
+        super(Kraken, self).__init__(exchange_api=exchange_api, ask=ask,bid=bid, last=last, bitcoin=bitcoin,litecoin=litecoin,ether=ether)
         #TODO erase all this not needed
         self.trailing_array = []
         self.spread = 0
@@ -21,10 +21,10 @@ class Kraken(data_query):
         self.growth_rate4 = 0
         self.fake_transactions = fake_transactions
 
-    def start_transaction(self):
+    def start_transaction(self, coin):
         """
         Creates a fake transaction object for doing a fake arbitrage transaction
         :return:
         """
 
-        return self.fake_transactions(self.name)
+        return self.fake_transactions(self.name, coin)

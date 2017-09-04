@@ -3,7 +3,7 @@
 
 class FakeTransactions(object):
     #buys, sells, shorts, etc
-    def __init__(self, name):
+    def __init__(self, name, coin):
         self.short_sell = 0
         self.buy = 0
         self.sell_price = 0
@@ -13,6 +13,7 @@ class FakeTransactions(object):
         self.beginning_amount = 0
         self.end_amount = 0
         self.name = name
+        self.coin = coin
 
     def start_arbitrage(self):
         """
@@ -22,13 +23,13 @@ class FakeTransactions(object):
         if self.short_sell:
             self.beginning_amount = self.share_values
             self.shares = float(self.share_values) / float(self.short_sell)
-            print "Short sold litecoin on {0} for {1} shares @ {2}".format(self.name, self.shares, self.short_sell)
+            print "Short sold {0} on {1} for {2} shares @ {3}".format(self.coin, self.name, self.shares, self.short_sell)
             
 
         if self.buy:
             self.beginning_amount = self.share_values
             self.shares = float(self.share_values) / float(self.buy)
-            print "Buying litecoin on {0} for {1} shares @ {2}".format(self.name, self.shares,self.buy )
+            print "Buying {0} on {1} for {2} shares @ {3}".format(self.coin, self.name, self.shares,self.buy )
 
 
     def end_arbitrage(self):

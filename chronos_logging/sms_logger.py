@@ -5,7 +5,7 @@ from googlevoice import Voice
 class SmsLogger(object):
     def __init__(self, config):
         self.voice = Voice()
-        self.voice.login('mcariello7@gmail.com', '?mcmiz123')
+        self.voice.login('mcariello7@gmail.com', '?mcmiz123VZ')
         self.config = config
 
 

@@ -5,15 +5,15 @@ REQUEST_DURATION = 3
 
 class PoloniexCoinData(CommonCoinData):
     def __init__(self, exchange_api, ask=None, bid=None, last=None, bitcoin=None, litecoin=None, ether=None):
-        self.litecoin_USD_bid = 0
-        self.litecoin_USD_ask = 0
-        self.litecoin_USD_lasttrade = 0
-        self.ether_USD_bid = 0
-        self.ether_USD_ask = 0
-        self.ether_USD_lasttrade = 0
-        self.bitcoin_USD_bid = 0
-        self.bitcoin_USD_ask = 0
-        self.bitcoin_USD_lasttrade = 0
+        self.litecoin_USD_bid = 0.0
+        self.litecoin_USD_ask = 0.0
+        self.litecoin_USD_lasttrade = 0.0
+        self.ether_USD_bid = 0.0
+        self.ether_USD_ask = 0.0
+        self.ether_USD_lasttrade = 0.0
+        self.bitcoin_USD_bid = 0.0
+        self.bitcoin_USD_ask = 0.0
+        self.bitcoin_USD_lasttrade = 0.0
         self.ask_key = ask
         self.bid_key = bid
         self.last_key = last
@@ -21,7 +21,7 @@ class PoloniexCoinData(CommonCoinData):
         self.bitcoin_key = bitcoin
         self.ether_key = ether
         self.poloniex = exchange_api
-        self.name = 'poloniex_exchange'
+        self.name = 'poloniex'
 
         super(PoloniexCoinData, self).__init__(exchange=self, request_duration=REQUEST_DURATION)
 
@@ -33,9 +33,9 @@ class PoloniexCoinData(CommonCoinData):
         :return:
         """
         litecoin = self.poloniex.returnTicker()[self.litecoin_key]
-        self.litecoin_USD_ask = litecoin[self.ask_key]
-        self.litecoin_USD_bid = litecoin[self.bid_key]
-        self.litecoin_USD_lasttrade = litecoin[self.last_key]
+        self.litecoin_USD_ask = float(litecoin[self.ask_key])
+        self.litecoin_USD_bid = float(litecoin[self.bid_key])
+        self.litecoin_USD_lasttrade = float(litecoin[self.last_key])
 
     def update_bitcoins(self):
         """
@@ -43,9 +43,9 @@ class PoloniexCoinData(CommonCoinData):
         :return:
         """
         bitcoin = self.poloniex.returnTicker()[self.bitcoin_key]
-        self.bitcoin_USD_ask = bitcoin[self.ask_key]
-        self.bitcoin_USD_bid = bitcoin[self.bid_key]
-        self.bitcoin_USD_lasttrade = bitcoin[self.last_key]
+        self.bitcoin_USD_ask = float(bitcoin[self.ask_key])
+        self.bitcoin_USD_bid = float(bitcoin[self.bid_key])
+        self.bitcoin_USD_lasttrade = float(bitcoin[self.last_key])
 
     def update_ether(self):
         """
@@ -53,6 +53,6 @@ class PoloniexCoinData(CommonCoinData):
         :return:
         """
         ether = self.poloniex.returnTicker()[self.ether_key]
-        self.ether_USD_ask = ether[self.ask_key]
-        self.ether_USD_bid = ether[self.bid_key]
-        self.ether_USD_lasttrade = ether[self.last_key]
+        self.ether_USD_ask = float(ether[self.ask_key])
+        self.ether_USD_bid = float(ether[self.bid_key])
+        self.ether_USD_lasttrade = float(ether[self.last_key])

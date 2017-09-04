@@ -1,5 +1,4 @@
 from common_data_query import CommonCoinData
-
 REQUEST_DURATION = 3
 LTCUSD = 'XLTCZUSD'
 XBTUSD = 'XXBTZUSD'
@@ -7,24 +6,27 @@ ETHUSD = 'XETHZUSD'
 
 
 class KrakenCoinData(CommonCoinData):
-    def __init__(self, exchange_api, order_volume, ask=None, bid=None, last=None, bitcoin=None, litecoin=None, ether=None):
+    def __init__(self, exchange_api, ask=None, bid=None, last=None, bitcoin=None, litecoin=None, ether=None):
         self.kraken = exchange_api
-        self.litecoin_USD_bid = 0
-        self.litecoin_USD_ask = 0
-        self.litecoin_USD_lasttrade = 0
-        self.ether_USD_bid = 0
-        self.ether_USD_ask = 0
-        self.ether_USD_lasttrade = 0
-        self.bitcoin_USD_bid = 0
-        self.bitcoin_USD_ask = 0
-        self.bitcoin_USD_lasttrade = 0
+        self.litecoin_USD_bid = 0.0
+        self.litecoin_USD_ask = 0.0
+        self.litecoin_USD_lasttrade = 0.0
+        self.ether_USD_bid = 0.0
+        self.ether_USD_ask = 0.0
+        self.ether_USD_lasttrade = 0.0
+        self.bitcoin_USD_bid = 0.0
+        self.bitcoin_USD_ask = 0.0
+        self.bitcoin_USD_lasttrade = 0.0
+        self.litecoin_key = litecoin
+        self.bitcoin_key = bitcoin
+        self.ether_key = ether
+        self.ask_key = ask
+        self.bid_key = bid
         self.making_transaction = 0
-        self.name = 'kraken_exchange'
-        self.order_volume = str(order_volume)
-        self.keys = {'LTCUSD': LTCUSD, 'XBTUSD': XBTUSD, 'ETHUSD' : ETHUSD}
+        self.name = 'kraken'
+        self.order_volume = None
+        self.keys = {'LTCUSD': LTCUSD, 'XBTUSD': XBTUSD, 'ETHUSD': ETHUSD}
         super(KrakenCoinData, self).__init__(exchange=self, request_duration=REQUEST_DURATION)
-
-
 
     def get_Depth(self, coin):
         """
@@ -55,15 +57,31 @@ class KrakenCoinData(CommonCoinData):
 
         return float(current_price)
 
+    def get_coin_ticker_information(self, result, coin, key, value_location):
+        """
+        Gets all data information for litecoin, bitcoin, and ether
+        :param result: the entire json
+        :param coin: the coin to be searched
+        :param key: the key for the specific value for that coin wanted
+        :param value_location: the location of that value
+        :return:
+        """
+        return result[coin][key][value_location]
 
     def update_litecoins(self):
         """
         Updates all information on litecoin based on the coin ticker query
         :return:
         """
-
-        self.litecoin_USD_ask = self.get_limit_price('asks', 'LTCUSD')
-        self.litecoin_USD_bid = self.get_limit_price('bids', 'LTCUSD')
+        json = self.kraken.query_public('Ticker', {'pair': 'LTCUSD,XBTUSD,ETHUSD'})
+        self.litecoin_USD_ask = float(self.get_coin_ticker_information(result=json['result'],
+                                                                 coin=self.litecoin_key,
+                                                                 key=self.ask_key,
+                                                                 value_location=0))
+        self.litecoin_USD_bid = float(self.get_coin_ticker_information(result=json['result'],
+                                                                 coin=self.litecoin_key,
+                                                                 key=self.bid_key,
+                                                                 value_location=0))
 
 
     def update_bitcoins(self):
@@ -71,11 +89,15 @@ class KrakenCoinData(CommonCoinData):
         Updates all bitcoin information based on the coin ticker query
         :return:
         """
-
-
-        self.bitcoin_USD_ask = self.get_limit_price('asks', 'XBTUSD')
-        self.bitcoin_USD_bid = self.get_limit_price('bids', 'XBTUSD')
-        self.json = self.kraken.query_public('Ticker', {'pair': 'LTCUSD,XBTUSD,ETHUSD'})
+        json = self.kraken.query_public('Ticker', {'pair': 'LTCUSD,XBTUSD,ETHUSD'})
+        self.bitcoin_USD_ask = float(self.get_coin_ticker_information(result=json['result'],
+                                                                coin=self.bitcoin_key,
+                                                                key=self.ask_key,
+                                                                value_location=0))
+        self.bitcoin_USD_bid = float(self.get_coin_ticker_information(result=json['result'],
+                                                                coin=self.bitcoin_key,
+                                                                key=self.bid_key,
+                                                                value_location=0))
 
 
     def update_ether(self):
@@ -83,6 +105,12 @@ class KrakenCoinData(CommonCoinData):
         Updates all ether information based on the coin ticker query
         :return:
         """
-
-        self.ether_USD_ask = self.get_limit_price('asks', 'ETHUSD')
-        self.ether_USD_bid = self.get_limit_price('bids', 'ETHUSD')
+        json = self.kraken.query_public('Ticker', {'pair': 'LTCUSD,XBTUSD,ETHUSD'})
+        self.ether_USD_ask = float(self.get_coin_ticker_information(result=json['result'],
+                                                              coin=self.ether_key,
+                                                              key=self.ask_key,
+                                                              value_location=0))
+        self.ether_USD_bid = float(self.get_coin_ticker_information(result=json['result'],
+                                                              coin=self.ether_key,
+                                                              key=self.bid_key,
+                                                              value_location=0))

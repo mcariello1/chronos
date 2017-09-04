@@ -28,7 +28,7 @@ class BitfinexCoinData(CommonCoinData):
         self.ether_key = ether
         self.bitfx = exchange_api
         #self.bitfx = bitfinex.Client()
-        self.name = 'bitfinex_exchange'
+        self.name = 'bitfinex'
         super(BitfinexCoinData, self).__init__(exchange=self, request_duration=10)
 
 
