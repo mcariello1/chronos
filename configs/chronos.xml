@@ -1,33 +1,10 @@
 <chronosconfig>
     <exchange name="chronos">
         <global name="growth_entry" value="0"/>
-        <global name="spread_entry" value =".7"/>
+        <global name="spread_entry" value =".3"/>
         <global name="growth_exit" value ="0"/>
         <global name="spread_exit" value =".5"/>
-        <global name="wallet_exposure" value="1500"/>
-    </exchange>
-
-    <exchange name="bitfinex">
-        <global name="ask" value ="ask"/>
-        <global name="bid" value ="bid"/>
-        <global name="last" value ="last_price"/>
-        <global name="bitcoin" value ="btcusd"/>
-        <global name="litecoin" value ="ltcusd"/>
-        <global name="ether" value ="ethusd"/>
-    </exchange>
-
-    <exchange name="bitstamp">
-        <global name="ask" value ="ask"/>
-        <global name="bid" value ="bid"/>
-        <global name="last" value ="last"/>
-        <global name="bitcoin" value ="btc"/>
-        <global name="litecoin" value ="ltc"/>
-    </exchange>
-
-    <exchange name="btce">
-        <global name="bitcoin" value ="btc_usd"/>
-        <global name="litecoin" value ="ltc_usd"/>
-        <global name="ether" value ="eth_usd"/>
+        <global name="wallet_exposure" value="10"/>
     </exchange>
 
     <exchange name="gdax">
@@ -37,6 +14,10 @@
         <global name="bitcoin" value ="BTC-USD"/>
         <global name="litecoin" value ="LTC-USD"/>
         <global name="ether" value ="ETH-USD"/>
+         <global name="round" value = "8"/>
+        <global name="key" value="cc27bd109492d3b672c8d4dadc7787c7"/>
+        <global name="passphrase" value="sx81x8ohgll"/>
+        <global name="b64secret" value="19ax7UlFNsNoaFAS6YYB2iujPHTRYCkThFeGRzgY4DmHmxbgbHwGf7C2/DqBpbMHe9G7NuPczdLpY7XoEWd4kg=="/>
     </exchange>
 
     <exchange name="gemini">
@@ -45,6 +26,9 @@
         <global name="last" value ="last"/>
         <global name="bitcoin" value ="btcusd"/>
         <global name="ether" value ="ethusd"/>
+        <global name="etherid" value ="ETHUSD"/>
+        <global name="round" value = "6"/>
+        <global name="wallet_address" value ="0x5DeeaaaaB5535385EdA29c81b64Ecc723204C485"/>
     </exchange>
 
     <exchange name="kraken">

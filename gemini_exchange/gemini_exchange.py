@@ -1,17 +1,15 @@
 
-from data_query import GdaxCoinData as data_query
+from data_query import GeminiCoinData as data_query
 from transactions import Transactions as transactions
 
-class Gdax(data_query):
-    def __init__(self,fake_transactions, key, passphrase, b64secret, ask=None, bid=None, last=None, bitcoin=None, litecoin=None, ether=None):
-        super(Gdax, self).__init__(ask=ask,bid=bid, last=last, bitcoin=bitcoin,litecoin=litecoin,ether=ether)
+class Gemini(data_query):
+    def __init__(self, client, fake_transactions, ask=None, bid=None, last=None, bitcoin=None, ether=None):
+        super(Gemini, self).__init__(client, ask=ask,bid=bid, last=last, bitcoin=bitcoin,ether=ether)
+        self.client = client
         self.trailing_array = []
         self.spread = 0
         self.growth_rate = 0
         self.fake_transactions = fake_transactions
-        self.key = key
-        self.passphrase = passphrase
-        self.b64secret = b64secret
 
     def start_transaction(self, coin):
         """
@@ -26,5 +24,5 @@ class Gdax(data_query):
         :return:
         """
 
-        return transactions(self.key, self.passphrase, self.b64secret)
+        return transactions(self.client)
 

@@ -1,6 +1,6 @@
 from common_data_query import CommonCoinData
 
-REQUEST_DURATION = 3
+REQUEST_DURATION = 4
 
 class GeminiCoinData(CommonCoinData):
     def __init__(self, exchange_api, ask=None, bid=None, last=None, bitcoin=None, ether=None):

@@ -4,19 +4,13 @@
 import threading
 import time
 from collections import defaultdict
-import bitfinex
-import bitstamp.client
-import btceapi
 import krakenex
 from tabulate import tabulate
-from bitstamp_exchange.bitstamp import Bitstamp as bitstp
-from btce_exchange.btce import Btce as btce
 from gdax_exchange.gdax_exchange import Gdax as coinbase
 from gemini.client import Client
-from gemini_exchange.data_query import GeminiCoinData as gemini
+from gemini_exchange.gemini_exchange import Gemini as gemini
 from kraken_exchange.kraken import Kraken as kraken
 from poloniex import Poloniex
-from bitfinex_exchange.bitfinex import Bitfinex as bitfx
 from poloniex_exchange.poloniex import Poloniex as polonx
 from config_parsing import parse_config
 from fake_transactions import FakeTransactions as fake_transactions
@@ -37,8 +31,6 @@ class Chronos(object):
         self.time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d_%H%M%S%f')[:-3]
         self.krakenexchange = self.start_kraken_thread()
         self.geminiexchange = self.start_gemini_thread()
-        self.bitstampexchange = self.start_bitstamp_thread()
-        self.bitfinexexchange= self.start_bitfx_thread()
         self.coinbaseexchange = self.start_gdax_thread()
         self.poloniexexchange = self.start_poloniex_thread()
         self.growth_entry = float(self.config['chronos']['growth_entry'])
@@ -47,18 +39,12 @@ class Chronos(object):
         self.spread_exit = float(self.config['chronos']['spread_exit'])
         self.max_array_size = 2
         self.book = None
-        self.start_arbitrage_deamon(self.poloniexexchange, self.coinbaseexchange, 'ether')
-        self.start_arbitrage_deamon(self.poloniexexchange, self.krakenexchange, 'ether')
-        self.start_arbitrage_deamon(self.krakenexchange, self.coinbaseexchange, 'ether')
-        self.start_arbitrage_deamon(self.poloniexexchange, self.coinbaseexchange, 'bitcoin')
-        self.start_arbitrage_deamon(self.poloniexexchange, self.krakenexchange, 'bitcoin')
-        self.start_arbitrage_deamon(self.krakenexchange, self.coinbaseexchange, 'bitcoin')
-
+        #self.start_arbitrage_deamon(self.geminiexchange, self.coinbaseexchange, 'ether')
         self.tracker = []
         self.query_list = []
         if not os.path.exists('./results/excels/{}'.format(self.time)):
             os.makedirs('./results/excels/{}'.format(self.time))
-        self.query_coin_data()
+        #self.query_coin_data()
 
 
 
@@ -122,17 +108,17 @@ class Chronos(object):
                 # start check for exit loop
                 #TODO This is where real transactions will be intitated depending on debug configuration
                 #print 'Short sell on {0} and buy on {1} '.format(exchangex.name, exchangey.name)
-                log.debug("Entering arbitrage short/buy for {0}/{1}".format(exchangex.name, exchangey.name))
-                self.do_fake_arbitrage(short_exchange=exchangex, long_exchange=exchangey, excel=excel_log, spread_tracker=spread_tracker, coin=coin)
-
+                log.debug("Entering REAL arbitrage short/buy for {0}/{1}".format(exchangex.name, exchangey.name))
+                #self.do_fake_arbitrage(short_exchange=exchangex, long_exchange=exchangey, excel=excel_log, spread_tracker=spread_tracker, coin=coin)
+                self.do_real_arbitrage(lower_exchange=exchangey, higher_exchange=exchangex, excel=excel_log, spread_tracker=spread_tracker, coin=coin)
 
             if entry_check2:
                 # exchange x borrow lite coin, sell it,
                 # buy exchange y
                 # start check for exit loop
                 #print 'Short sell on {0} and buy on {1} '.format(exchangey.name, exchangex.name)
-                log.debug("Entering arbitrage buy/short for {0}/{1}".format(exchangey.name, exchangex.name))
-                self.do_fake_arbitrage(short_exchange=exchangey, long_exchange=exchangex, excel=excel_log1, spread_tracker=spread_tracker1, coin=coin)
+                log.debug("Entering FAKE arbitrage buy/short for {0}/{1}".format(exchangey.name, exchangex.name))
+                #self.do_fake_arbitrage(short_exchange=exchangey, long_exchange=exchangex, excel=excel_log1, spread_tracker=spread_tracker1, coin=coin)
 
 
     def wait_for_exit(self, exchange1, exchange2, excel, spread_tracker, coin):
@@ -216,6 +202,58 @@ class Chronos(object):
             return True
         else:
             return False
+
+    def do_real_arbitrage(self, lower_exchange, higher_exchange, excel, spread_tracker, coin):
+        """
+        Performs a real arbitrade on a given opportunity between two exchanges and performs
+        real transactions by taking money from the lower exchange , sending it to the higher exchange,
+        and selling it.
+        :param short_exchange:
+        :param long_exchange:
+        :param excel:
+        :param spread_tracker:
+        :param coin:
+        :return:
+        """
+        self.sms_log.log_sms_informing(short_exchange_name=lower_exchange.name, long_exchange_name=higher_exchange.name)
+        coins = {'ether':'ETH', 'bitcoin':'BTC', 'litecoin':'LTC'}
+        print "Performing real arbitrage"
+        lower_exchange_transactions = lower_exchange.open_wallet()
+        higher_exchange_transactions = higher_exchange.open_wallet()
+        ask = getattr(lower_exchange, "{0}_USD_ask".format(coin))
+        shares = float(self.config['chronos']['wallet_exposure']) / float(ask)
+        shares = round(shares, int(self.config[lower_exchange.name]['round']))
+        coin_id = coins[coin]
+        print shares
+        print self.config['chronos']['wallet_exposure']
+        print self.config[lower_exchange.name][coin]
+        print lower_exchange_transactions.buy(self.config[lower_exchange.name][coin], shares, ask)
+        # get id from this return?
+        time.sleep(1)
+        print lower_exchange_transactions.crypto_withdraw(shares, coin_id, self.config[higher_exchange.name]["wallet_address"])
+        # check wallet if money is in it to the equivalent of what was already in there
+        higher_shares = self.check_for_transaction(higher_exchange_transactions, coin_id)
+        higher_shares = round(higher_shares, int(self.config[higher_exchange.name]['round']))
+        # when it is , sell it , calculate returns
+        # get current price of exchange
+        bid = getattr(higher_exchange, "{0}_USD_bid".format(coin))
+        print higher_exchange_transactions.sell(ask, higher_shares, self.config[higher_exchange.name][coin+'id'])
+        profit = (int(bid)*higher_shares) - (shares*int(ask))
+        profit = profit + 1
+        self.sms_log.log_sms(short_exchange_name=lower_exchange.name, long_exchange_name=higher_exchange.name,
+                             profit=profit)
+
+    def check_for_transaction(self, wallet, coin):
+        #get account of that coin, when its greater than what it is, sell that size
+
+        available = wallet.get_account_information(coin)
+
+        new_available = available
+        while available == new_available:
+            time.sleep(4)
+            new_available = wallet.get_account_information(coin)
+
+        return new_available
 
 
     def do_fake_arbitrage(self, short_exchange, long_exchange, excel, spread_tracker, coin):
@@ -347,62 +385,14 @@ class Chronos(object):
         :return:
         """
         gemini_api = Client('r6ZTeaUX1DFGm3IaaMgF', '22ykz6Cwe91HAkg1rGDVZ467Czsx')
-        return gemini(exchange_api=gemini_api,
+        return gemini(client=gemini_api,
+                      fake_transactions=fake_transactions,
                       ask=str(self.config['gemini']['ask']),
                       bid=str(self.config['gemini']['bid']),
                       last=str(self.config['gemini']['last']),
                       bitcoin=str(self.config['gemini']['bitcoin']),
                       ether=str(self.config['gemini']['ether']))
 
-
-    def start_bitstamp_thread(self):
-        """
-        Creates a bitstamp exchange object which starts a thread updating its values every X seconds
-        based on its exchanges limit restrictions
-        :return:
-        """
-        bitstamp_api = bitstamp.client.Public()
-        return bitstp(fake_transactions=fake_transactions,
-                      exchange_api=bitstamp_api,
-                      ask=str(self.config['bitstamp']['ask']),
-                      bid=str(self.config['bitstamp']['bid']),
-                      last=str(self.config['bitstamp']['last']),
-                      bitcoin=str(self.config['bitstamp']['bitcoin']),
-                      litecoin=str(self.config['bitstamp']['litecoin']))
-
-
-    def start_bitfx_thread(self):
-        """
-        Creates a bitfinex exchange object which starts a thread updating its values every X seconds
-        based on its exchanges limit restrictions
-        :return:
-        """
-        bitfx_api = bitfinex.Client()
-        return bitfx(fake_transactions=fake_transactions,
-                     exchange_api=bitfx_api,
-                     ask=str(self.config['bitfinex']['ask']),
-                     bid=str(self.config['bitfinex']['bid']),
-                     last=str(self.config['bitfinex']['last']),
-                     bitcoin=str(self.config['bitfinex']['bitcoin']),
-                     litecoin=str(self.config['bitfinex']['litecoin']),
-                     ether=str(self.config['bitfinex']['ether']))
-
-
-    def start_btce_thread(self):
-        """
-        Creates a btce exchange object which starts a thread updating its values every X seconds
-        based on its exchanges limit restrictions
-        :return:
-        """
-
-        btce_api = btceapi.BTCEConnection()
-        btce_info = btceapi.APIInfo(connection=btce_api)
-        return btce(fake_transactions=fake_transactions,
-                    exchange_api=btce_api,
-                    exchange_info=btce_info,
-                    bitcoin=str(self.config['btce']['bitcoin']),
-                    litecoin=str(self.config['btce']['litecoin']),
-                    ether=str(self.config['btce']['ether']))
 
     def start_gdax_thread(self):
         """
@@ -414,6 +404,9 @@ class Chronos(object):
 
 
         return coinbase(fake_transactions=fake_transactions,
+                        key=str(self.config['gdax']['key']),
+                        passphrase=str(self.config['gdax']['passphrase']),
+                        b64secret=str(self.config['gdax']['b64secret']),
                         ask=str(self.config['gdax']['ask']),
                         bid=str(self.config['gdax']['bid']),
                         last=str(self.config['gdax']['last']),
