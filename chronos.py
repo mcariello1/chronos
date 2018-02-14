@@ -39,12 +39,12 @@ class Chronos(object):
         self.spread_exit = float(self.config['chronos']['spread_exit'])
         self.max_array_size = 2
         self.book = None
-        #self.start_arbitrage_deamon(self.geminiexchange, self.coinbaseexchange, 'ether')
+        self.start_arbitrage_deamon(self.geminiexchange, self.coinbaseexchange, 'ether')
         self.tracker = []
         self.query_list = []
         if not os.path.exists('./results/excels/{}'.format(self.time)):
             os.makedirs('./results/excels/{}'.format(self.time))
-        #self.query_coin_data()
+        self.query_coin_data()
 
 
 
@@ -232,7 +232,7 @@ class Chronos(object):
         time.sleep(1)
         print lower_exchange_transactions.crypto_withdraw(shares, coin_id, self.config[higher_exchange.name]["wallet_address"])
         # check wallet if money is in it to the equivalent of what was already in there
-        higher_shares = self.check_for_transaction(higher_exchange_transactions, coin_id)
+        higher_shares = self.check_for_transaction(higher_exchange_transactions, coin_id, shares)
         higher_shares = round(higher_shares, int(self.config[higher_exchange.name]['round']))
         # when it is , sell it , calculate returns
         # get current price of exchange
@@ -242,13 +242,14 @@ class Chronos(object):
         self.sms_log.log_sms(short_exchange_name=lower_exchange.name, long_exchange_name=higher_exchange.name,
                              profit=profit)
 
-    def check_for_transaction(self, wallet, coin):
+    def check_for_transaction(self, wallet, coin, shares_coming):
         #get account of that coin, when its greater than what it is, sell that size
 
         available = wallet.get_account_information(coin)
-
+        shares = shares_coming/2
+        available = available + shares
         new_available = available
-        while available == new_available:
+        while available <= new_available:
             time.sleep(4)
             new_available = wallet.get_account_information(coin)
 
