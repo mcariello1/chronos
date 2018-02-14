@@ -238,8 +238,7 @@ class Chronos(object):
         # get current price of exchange
         bid = getattr(higher_exchange, "{0}_USD_bid".format(coin))
         print higher_exchange_transactions.sell(ask, higher_shares, self.config[higher_exchange.name][coin+'id'])
-        profit = (int(bid)*higher_shares) - (shares*int(ask))
-        profit = profit + 1
+        profit = (bid*higher_shares) - (shares*ask)
         self.sms_log.log_sms(short_exchange_name=lower_exchange.name, long_exchange_name=higher_exchange.name,
                              profit=profit)
 
