@@ -34,14 +34,13 @@ class GdaxCoinData(CommonCoinData):
         :return:
         """
 
-        order_book = gdax.OrderBook(product_id='ETH-USD')
-        order_book.start()
+
         time.sleep(2)
-        book = order_book.get_current_book()
+        book = self.coinbase.get_product_order_book('ETH-USD', level=2)
         entries = book[type]
         while len(entries) < 1:
             time.sleep(3)
-            book = order_book.get_current_book()
+            book = self.coinbase.get_product_order_book('ETH-USD', level=2)
             entries = book[type]
         total_volume = 0.0
         current_price = 0.0
@@ -55,11 +54,9 @@ class GdaxCoinData(CommonCoinData):
             print 'order' + str(order_volume)
             print 'price' + str(price)
             if total_volume >= float(order_volume):
-                order_book.close()
                 print current_price
                 return float(current_price)
 
-        order_book.close()
         return None
         print 'HELLO'
     def update_litecoins(self):
