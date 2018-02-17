@@ -29,7 +29,7 @@ class Transactions(object):
         json = self.auth_client.new_order(self.client_id, symbol, amount, price, "sell", "exchange limit", None)
         return json
 
-    def crypto_withdraw(self, currency, crypto_address, amount):
+    def crypto_withdraw(self, currency, crypto_address, amount, exchange_name):
         '''
         Withdraws currency on the gdax exchange to another wallet
         :param amount:

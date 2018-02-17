@@ -26,7 +26,7 @@ class GdaxCoinData(CommonCoinData):
         self.name = 'gdax'
         super(GdaxCoinData, self).__init__(exchange=self, request_duration=REQUEST_DURATION)
 
-    def get_limit_price(self, type, order_volume):
+    def get_limit_price(self, type, order_volume, coin_id):
         """
         Gets the limit price of an order by adding up each order until it reaches total volume
         once it reaches total volume exit and return the price of that order
@@ -86,3 +86,5 @@ class GdaxCoinData(CommonCoinData):
         ether = self.coinbase.get_product_ticker(self.ether_key)
         self.ether_USD_ask = float(ether[self.ask_key])
         self.ether_USD_bid = float(ether[self.bid_key])
+
+
