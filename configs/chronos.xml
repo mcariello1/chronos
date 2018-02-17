@@ -1,10 +1,10 @@
 <chronosconfig>
     <exchange name="chronos">
         <global name="growth_entry" value="0"/>
-        <global name="spread_entry" value =".2"/>
+        <global name="spread_entry" value =".4"/>
         <global name="growth_exit" value ="0"/>
         <global name="spread_exit" value =".5"/>
-        <global name="wallet_exposure" value="10"/>
+        <global name="wallet_exposure" value="100"/>
     </exchange>
 
     <exchange name="gdax">
@@ -13,8 +13,17 @@
         <global name="last" value ="price"/>
         <global name="bitcoin" value ="BTC-USD"/>
         <global name="litecoin" value ="LTC-USD"/>
+        <global name="limit_fees" value="0"/>
         <global name="ether" value ="ETH-USD"/>
-         <global name="round" value = "8"/>
+        <global name="etherid" value ="ETH-USD"/>
+        <global name="round" value = "8"/>
+        <global name="fees" value = "0.0"/>
+        <global name="ether_withdraw_fees" value = "0"/>
+        <global name="litecoin_withdraw_fees" value = "0"/>
+        <global name="bitcoin_withdraw_fees" value = "0"/>
+        <global name="ether_wallet_address" value="0x203D29cB1D4294334f1469D514E616748d458f52"/>
+        <global name="litecoin_wallet_address" value="LW9CaUFXaKf7wmLwmQXUgyoj4xmavpGtjU"/>
+        <global name="bitcoin_wallet_address" value="3Jx4WbGjpiV6kwxVW7wMCVovr3vpfCHwWZ"/>
         <global name="key" value="cc27bd109492d3b672c8d4dadc7787c7"/>
         <global name="passphrase" value="sx81x8ohgll"/>
         <global name="b64secret" value="19ax7UlFNsNoaFAS6YYB2iujPHTRYCkThFeGRzgY4DmHmxbgbHwGf7C2/DqBpbMHe9G7NuPczdLpY7XoEWd4kg=="/>
@@ -28,17 +37,33 @@
         <global name="ether" value ="ethusd"/>
         <global name="etherid" value ="ETHUSD"/>
         <global name="round" value = "6"/>
-        <global name="wallet_address" value ="0x5DeeaaaaB5535385EdA29c81b64Ecc723204C485"/>
+        <global name="fees" value = ".0020"/>
+        <global name="limit_fees" value = ".0020"/>
+        <global name="ether_withdraw_fees" value = "0.001"/>
+        <global name="litecoin_withdraw_fees" value = "0"/>
+        <global name="bitcoin_withdraw_fees" value = "0.002"/>
+        <global name="ether_wallet_address" value ="0x5DeeaaaaB5535385EdA29c81b64Ecc723204C485"/>
+        <global name="bitcoin_wallet_address" value="1GY8abkYpn9bDBhYZRhsZeve9XM8DuPZzV"/>
     </exchange>
 
     <exchange name="kraken">
         <global name="ask" value ="a"/>
         <global name="bid" value ="b"/>
         <global name="last" value ="c"/>
+        <global name="round" value = "8"/>
+        <global name="fees" value = ".0025"/>
+        <global name="limit_fees" value=".0025"/>
+        <global name="ether_withdraw_fees" value = ".005"/>
+        <global name="litecoin_withdraw_fees" value = ".001"/>
+        <global name="bitcoin_withdraw_fees" value = "0.0005"/>
         <global name="bitcoin" value ="XXBTZUSD"/>
         <global name="litecoin" value ="XLTCZUSD"/>
         <global name="ether" value ="XETHZUSD"/>
-        <global name="key_path" value="/home/ec2-user/chronos/kraken_exchange/kraken.key"/>
+        <global name="etherid" value ="XETHZUSD"/>
+        <global name="ether_wallet_address" value ="0x992869c93dFcAFDF4BDb06E1456c7B0BA4846603"/>
+        <global name="litecoin_wallet_address" value="LXcEimKY9JwJomUKeicp76k6LZ6x1ZYQFT"/>
+        <global name="bitcoin_wallet_address" value="3Jx4WbGjpiV6kwxVW7wMCVovr3vpfCHwWZ"/>
+        <global name="key_path" value="/Users/mcariello/PycharmProjects/chronos-kairos/chronos/kraken_exchange/kraken.key"/>
     </exchange>
 
     <exchange name="poloniex">
@@ -49,8 +74,5 @@
     <global name="litecoin" value ="USDT_LTC"/>
     <global name="ether" value ="USDT_ETH"/>
     </exchange>
-
-
-
 
 </chronosconfig>

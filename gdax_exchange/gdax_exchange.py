@@ -10,6 +10,7 @@ class Gdax(data_query):
         self.growth_rate = 0
         self.fake_transactions = fake_transactions
         self.key = key
+        self.valid_coins = ['bitcoin', 'ether', 'litecoin']
         self.passphrase = passphrase
         self.b64secret = b64secret
 

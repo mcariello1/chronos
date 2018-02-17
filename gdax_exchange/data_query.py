@@ -26,7 +26,7 @@ class GdaxCoinData(CommonCoinData):
         self.name = 'gdax'
         super(GdaxCoinData, self).__init__(exchange=self, request_duration=REQUEST_DURATION)
 
-    def get_limit_price(self, type, order_volume):
+    def get_limit_price(self, type, order_volume, coin_id):
         """
         Gets the limit price of an order by adding up each order until it reaches total volume
         once it reaches total volume exit and return the price of that order
@@ -36,11 +36,11 @@ class GdaxCoinData(CommonCoinData):
 
 
         time.sleep(2)
-        book = self.coinbase.get_product_order_book('ETH-USD', level=2)
+        book = self.coinbase.get_product_order_book(coin_id, level=2)
         entries = book[type]
         while len(entries) < 1:
             time.sleep(3)
-            book = self.coinbase.get_product_order_book('ETH-USD', level=2)
+            book = self.coinbase.get_product_order_book(coin_id, level=2)
             entries = book[type]
         total_volume = 0.0
         current_price = 0.0
@@ -57,8 +57,8 @@ class GdaxCoinData(CommonCoinData):
                 print current_price
                 return float(current_price)
 
-        return None
-        print 'HELLO'
+        return 0
+
     def update_litecoins(self):
         """
         Queries and updates litecoin information from gdax /coinbase
@@ -86,3 +86,18 @@ class GdaxCoinData(CommonCoinData):
         ether = self.coinbase.get_product_ticker(self.ether_key)
         self.ether_USD_ask = float(ether[self.ask_key])
         self.ether_USD_bid = float(ether[self.bid_key])
+
+
+    def update_coins(self, coins):
+        if 'ether' in coins:
+            ether = self.coinbase.get_product_ticker(self.ether_key)
+            self.ether_USD_ask = float(ether[self.ask_key])
+            self.ether_USD_bid = float(ether[self.bid_key])
+        if 'bitcoin' in coins:
+            bitcoin = self.coinbase.get_product_ticker(self.bitcoin_key)
+            self.bitcoin_USD_ask = float(bitcoin[self.ask_key])
+            self.bitcoin_USD_bid = float(bitcoin[self.bid_key])
+        if 'litecoin' in coins:
+            litecoin = self.coinbase.get_product_ticker(self.litecoin_key)
+            self.litecoin_USD_ask = litecoin[self.ask_key]
+            self.litecoin_USD_bid = litecoin[self.bid_key]

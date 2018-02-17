@@ -14,7 +14,7 @@ class Transactions(object):
         :return:
         '''
 
-        json = self.auth_client.new_order(self.client_id, symbol, amount, price, "buy", "exchange limit", None)
+        json = self.auth_client.new_order(self.client_id, symbol, amount, price, "buy", "exchange limit", ["maker-or-cancel"])
         return json
 
     def sell(self, price, amount, symbol ):
@@ -26,10 +26,10 @@ class Transactions(object):
         :return:
         '''
 
-        json = self.auth_client.new_order(self.client_id, symbol, amount, price, "sell", "exchange limit", None)
+        json = self.auth_client.new_order(self.client_id, symbol, amount, price, "sell", "exchange limit", ["maker-or-cancel"])
         return json
 
-    def crypto_withdraw(self, currency, crypto_address, amount):
+    def crypto_withdraw(self, currency, crypto_address, amount, exchange_name):
         '''
         Withdraws currency on the gdax exchange to another wallet
         :param amount:
@@ -38,7 +38,7 @@ class Transactions(object):
         :return:
         '''
 
-        json = self.auth_client.withdraw_crypto(amount=amount, currency=currency, crypto_address=crypto_address)
+        json = self.auth_client.withdraw_crypto(amount=amount, currency=currency, address=crypto_address)
         return json
 
     def get_account_information(self, coin):
@@ -52,5 +52,9 @@ class Transactions(object):
             if coin in account['currency']:
                 return float(account['available'])
 
-        return None
+        return 0
 
+    def cancel_order(self, response):
+        print response
+        json = self.auth_client.cancel_all_orders()
+        return json
