@@ -241,7 +241,7 @@ class Chronos(object):
         try:
             spread_tracker.get_growth_rate()
         except:
-            log.debug("Couldnt get growth rate")
+            log.debug("Couldnt get growth rate while arbitraging")
 
         if spread_tracker.growth_rate >= self.growth_entry and spread_tracker.spread >= self.spread_entry:
             pass
@@ -255,6 +255,7 @@ class Chronos(object):
         # get id from this return?
         # add checking for exchange
         available = self.check_for_deposit(lower_exchange_transactions, coin_id, shares)
+        log.debug("Account balance after 2 mins : {}".format(available))
         if available == 0:
             return
         self.sms_log.log_sms_informing(short_exchange_name=lower_exchange.name, long_exchange_name=higher_exchange.name)
