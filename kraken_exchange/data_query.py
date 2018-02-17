@@ -1,5 +1,5 @@
 from common_data_query import CommonCoinData
-REQUEST_DURATION = 3
+REQUEST_DURATION = 3.5
 LTCUSD = 'XLTCZUSD'
 XBTUSD = 'XXBTZUSD'
 ETHUSD = 'XETHZUSD'
@@ -35,9 +35,9 @@ class KrakenCoinData(CommonCoinData):
         """
         json=self.kraken.query_public('Depth', {'pair': coin})
 
-        return json[self.keys[coin]]
+        return json['result'][coin]
 
-    def get_limit_price(self, type, coin):
+    def get_limit_price(self, type, order_volume, coin):
         """
         Gets the limit price of an order by adding up each order until it reaches total volume
         once it reaches total volume exit and return the price of that order
@@ -48,14 +48,15 @@ class KrakenCoinData(CommonCoinData):
 
         total_volume = 0.0
         current_price = 0.0
-
+        entries = order_book[type]
+        current_price, volume, order_id = entries[0]
         for price, volume, timestamp in order_book[type]:
-            current_price = price
-            total_volume += volume
-            if total_volume >= float(self.order_volume):
-                break
+            total_volume += float(volume)
+            if total_volume >= float(order_volume):
+                print current_price
+                return float(current_price)
 
-        return float(current_price) - 0.05
+        return 0
 
     def get_coin_ticker_information(self, result, coin, key, value_location):
         """
@@ -114,3 +115,37 @@ class KrakenCoinData(CommonCoinData):
                                                               coin=self.ether_key,
                                                               key=self.bid_key,
                                                               value_location=0))
+
+
+    def update_coins(self, coins):
+        json = self.kraken.query_public('Ticker', {'pair': 'LTCUSD,XBTUSD,ETHUSD'})
+
+        if 'ether' in coins:
+            self.ether_USD_ask = float(self.get_coin_ticker_information(result=json['result'],
+                                                                        coin=self.ether_key,
+                                                                        key=self.ask_key,
+                                                                        value_location=0))
+            self.ether_USD_bid = float(self.get_coin_ticker_information(result=json['result'],
+                                                                        coin=self.ether_key,
+                                                                        key=self.bid_key,
+                                                                        value_location=0))
+
+        if 'bitcoin' in coins:
+            self.bitcoin_USD_ask = float(self.get_coin_ticker_information(result=json['result'],
+                                                                          coin=self.bitcoin_key,
+                                                                          key=self.ask_key,
+                                                                          value_location=0))
+            self.bitcoin_USD_bid = float(self.get_coin_ticker_information(result=json['result'],
+                                                                          coin=self.bitcoin_key,
+                                                                          key=self.bid_key,
+                                                                          value_location=0))
+
+        if 'litecoin' in coins:
+            self.litecoin_USD_ask = float(self.get_coin_ticker_information(result=json['result'],
+                                                                           coin=self.litecoin_key,
+                                                                           key=self.ask_key,
+                                                                           value_location=0))
+            self.litecoin_USD_bid = float(self.get_coin_ticker_information(result=json['result'],
+                                                                           coin=self.litecoin_key,
+                                                                           key=self.bid_key,
+                                                                           value_location=0))

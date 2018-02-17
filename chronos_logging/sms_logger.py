@@ -5,7 +5,7 @@ from googlevoice import Voice
 class SmsLogger(object):
     def __init__(self, config):
         self.voice = Voice()
-        self.voice.login('mcariello7@gmail.com', '?mcmiz123VZ')
+        self.voice.login('mcariello7@gmail.com', '?mcmiz123BV')
         self.config = config
 
 
@@ -26,3 +26,7 @@ class SmsLogger(object):
             self.voice.send_sms(4158872108,'Entered with {0} as high and {1} as low'.format(short_exchange_name,long_exchange_name))
             self.voice.send_sms(6313971667,'Entered with {0} as high and {1} as low'.format(short_exchange_name,long_exchange_name))
             self.voice.send_sms(6315173643,'Entered with {0} as high and {1} as low'.format(short_exchange_name,long_exchange_name))
+
+
+    def log_sms_test(self, short_exchange_name, long_exchange_name, message):
+            self.voice.send_sms(4158872108,'With {0} as short and {1} as long: {2} '.format(short_exchange_name,long_exchange_name, message))

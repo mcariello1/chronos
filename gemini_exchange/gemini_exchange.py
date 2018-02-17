@@ -8,6 +8,7 @@ class Gemini(data_query):
         self.client = client
         self.trailing_array = []
         self.spread = 0
+        self.valid_coins = ['bitcoin', 'ether']
         self.growth_rate = 0
         self.fake_transactions = fake_transactions
 
