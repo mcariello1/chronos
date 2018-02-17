@@ -55,7 +55,7 @@ class KrakenCoinData(CommonCoinData):
             if total_volume >= float(self.order_volume):
                 break
 
-        return float(current_price)
+        return float(current_price) - 0.05
 
     def get_coin_ticker_information(self, result, coin, key, value_location):
         """

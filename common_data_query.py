@@ -26,6 +26,9 @@ class CommonCoinData(object):
         print 'started {0} thread'.format(self.exchange.name)
         while self.making_transaction == 0:
             time.sleep(self.request_duration)
-            self.exchange.update_bitcoins()
-            self.exchange.update_ether()
-            self.exchange.update_litecoins()
+            try:
+                #self.exchange.update_bitcoins()
+                self.exchange.update_ether()
+                #self.exchange.update_litecoins()
+            except:
+                print 'Couldnt update coins'

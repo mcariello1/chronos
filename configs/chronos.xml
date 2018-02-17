@@ -1,7 +1,7 @@
 <chronosconfig>
     <exchange name="chronos">
         <global name="growth_entry" value="0"/>
-        <global name="spread_entry" value =".8"/>
+        <global name="spread_entry" value =".1"/>
         <global name="growth_exit" value ="0"/>
         <global name="spread_exit" value =".5"/>
         <global name="wallet_exposure" value="10"/>

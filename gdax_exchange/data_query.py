@@ -1,7 +1,7 @@
 
 from common_data_query import CommonCoinData
 import gdax
-
+import time
 REQUEST_DURATION = 3
 
 class GdaxCoinData(CommonCoinData):
@@ -26,32 +26,42 @@ class GdaxCoinData(CommonCoinData):
         self.name = 'gdax'
         super(GdaxCoinData, self).__init__(exchange=self, request_duration=REQUEST_DURATION)
 
-    def get_limit_price(self, type):
+    def get_limit_price(self, type, order_volume):
         """
         Gets the limit price of an order by adding up each order until it reaches total volume
         once it reaches total volume exit and return the price of that order
+        :type: asks or bids
         :return:
         """
 
         order_book = gdax.OrderBook(product_id='ETH-USD')
         order_book.start()
-
+        time.sleep(2)
         book = order_book.get_current_book()
         entries = book[type]
-
+        while len(entries) < 1:
+            time.sleep(3)
+            book = order_book.get_current_book()
+            entries = book[type]
         total_volume = 0.0
         current_price = 0.0
-
+        current_price, volume, order_id = entries[0]
         for price, volume, order_id in entries:
-            current_price = price
-            total_volume += volume
-            if total_volume >= float(self.order_volume):
-                break
+            print price
+            print volume
+            print order_id
+            total_volume += float(volume)
+            print 'total' + str(total_volume)
+            print 'order' + str(order_volume)
+            print 'price' + str(price)
+            if total_volume >= float(order_volume):
+                order_book.close()
+                print current_price
+                return float(current_price)
 
         order_book.close()
-
-        return float(current_price)
-
+        return None
+        print 'HELLO'
     def update_litecoins(self):
         """
         Queries and updates litecoin information from gdax /coinbase
