@@ -33,7 +33,7 @@ class Transactions(object):
         json = self.auth_client.sell(price=price, size=size, product_id=product_id)
         return json
 
-    def crypto_withdraw(self, amount, currency, crypto_address):
+    def crypto_withdraw(self, amount, currency, crypto_address, exchange_name):
         '''
         Withdraws currency on the gdax exchange to another wallet
         :param amount:
@@ -59,4 +59,10 @@ class Transactions(object):
                 return float(account['available'])
 
         return None
+
+    def cancel_order(self, response):
+
+
+        self.auth_client.cancel_order(response['id'])
+
 

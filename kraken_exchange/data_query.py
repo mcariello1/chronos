@@ -35,9 +35,9 @@ class KrakenCoinData(CommonCoinData):
         """
         json=self.kraken.query_public('Depth', {'pair': coin})
 
-        return json[self.keys[coin]]
+        return json['result'][coin]
 
-    def get_limit_price(self, type, coin):
+    def get_limit_price(self, type, order_volume, coin):
         """
         Gets the limit price of an order by adding up each order until it reaches total volume
         once it reaches total volume exit and return the price of that order
@@ -48,14 +48,15 @@ class KrakenCoinData(CommonCoinData):
 
         total_volume = 0.0
         current_price = 0.0
-
+        entries  = order_book[type]
+        current_price, volume, order_id = entries[0]
         for price, volume, timestamp in order_book[type]:
-            current_price = price
-            total_volume += volume
-            if total_volume >= float(self.order_volume):
-                break
+            total_volume += float(volume)
+            if total_volume >= float(order_volume):
+                print current_price
+                return float(current_price)
 
-        return float(current_price) - 0.05
+        return None
 
     def get_coin_ticker_information(self, result, coin, key, value_location):
         """

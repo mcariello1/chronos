@@ -39,7 +39,8 @@ class Chronos(object):
         self.spread_exit = float(self.config['chronos']['spread_exit'])
         self.max_array_size = 2
         self.book = None
-        self.start_arbitrage_deamon(self.geminiexchange, self.coinbaseexchange, 'ether')
+        #self.start_arbitrage_deamon(self.geminiexchange, self.coinbaseexchange, 'ether')
+        self.start_arbitrage_deamon(self.coinbaseexchange, self.krakenexchange,  'ether')
         self.tracker = []
         self.query_list = []
         if not os.path.exists('./results/excels/{}'.format(self.time)):
@@ -102,7 +103,7 @@ class Chronos(object):
             time.sleep(3)
             entry_check1 = self.check_for_entry_criteria(high_exchange,low_exchange, excel_log, spread_tracker, coin)
             entry_check2 = self.check_for_entry_criteria(low_exchange, high_exchange, excel_log1, spread_tracker1, coin)
-            if entry_check1:
+            if True:
                 # exchange x borrow lite coin, sell it,
                 # buy exchange y
                 # start check for exit loop
@@ -135,6 +136,7 @@ class Chronos(object):
         :param spread_tracker:
         :return:
         """
+        # being were not shorting , may no longer be valid for now
         while True:
             time.sleep(3)
             bid = getattr(exchange1, "{0}_USD_bid".format(coin))
@@ -150,19 +152,6 @@ class Chronos(object):
             except:
                 log.debug("Couldn't get growth rate")
                 log.debug("Trailing array: {}".format(spread_tracker.trailing_array))
-
-            string = '----{0}/{1}       ' + '{2}/{3}'.ljust(37) + '{4}%    {5}% \n'.ljust(5)
-            #print string.format(exchange1.name,
-                               # exchange2.name,
-                               # exchange1.litecoin_USD_lasttrade,
-                                #exchange2.litecoin_USD_lasttrade,
-                                #exchange1.spread,
-                                #exchange1.growth_rate)
-
-            #excel.log_excel(exchange1.litecoin_USD_lasttrade,
-             #               exchange2.litecoin_USD_lasttrade,
-              #              spread_tracker.spread,
-               #             spread_tracker.growth_rate)
 
             if spread_tracker.growth_rate <= self.growth_exit and spread_tracker.spread <= self.spread_exit:
                 log.debug("Exiting arbitrage short/buy for {0}/{1}".format(exchange1.name, exchange2.name))
@@ -181,6 +170,7 @@ class Chronos(object):
         :param spread_tracker:
         :return:
         """
+        #should I calculate spread w/ fees included ?
         bid = getattr(exchange1, "{0}_USD_bid".format(coin))
         ask = getattr(exchange2, "{0}_USD_ask".format(coin))
         spread_tracker.get_spread(bid, ask)
@@ -189,19 +179,7 @@ class Chronos(object):
             spread_tracker.get_growth_rate()
         except:
             log.debug( "Couldnt get growth rate")
-        string = '----{0}/{1}       ' + '{2}/{3}'.ljust(37) + '{4}%    {5}% \n'.ljust(5)
-        #print string.format(exchange1.name,
-                            #exchange2.name,
-                            #exchange1.litecoin_USD_lasttrade,
-                            #exchange2.litecoin_USD_lasttrade,
-                            #exchange1.spread,
-                            #exchange1.growth_rate)
 
-        #print 'Array: {0}\n'.format(exchange1.trailing_array)
-        #excel.log_excel(exchange1.litecoin_USD_lasttrade,
-         #               exchange2.litecoin_USD_lasttrade,
-          #              spread_tracker.spread,
-           #             spread_tracker.growth_rate)
 
         if spread_tracker.growth_rate >= self.growth_entry and spread_tracker.spread >= self.spread_entry:
             return True
@@ -221,20 +199,88 @@ class Chronos(object):
         :return:
         """
         coins = {'ether':'ETH', 'bitcoin':'BTC', 'litecoin':'LTC'}
+
+        coin_id = coins[coin]
+
         print "Performing real arbitrage"
         log.debug("{0} price is {1}".format(lower_exchange.name, lower_exchange.ether_USD_ask))
+        # open wallets for making transactions
         lower_exchange_transactions = lower_exchange.open_wallet()
         higher_exchange_transactions = higher_exchange.open_wallet()
+        # perform buy and get the updated ask and shares available to withdraw
+        (available, ask) = self.arbitrage_buy(lower_exchange, lower_exchange_transactions, higher_exchange, higher_exchange_transactions, coin, coin_id, spread_tracker)
+        # if the buy didnt go through , exit and and enter again when spread is open
+        if available == 0:
+            return
+        self.sms_log.log_sms_informing(short_exchange_name=lower_exchange.name, long_exchange_name=higher_exchange.name)
+        print lower_exchange_transactions.crypto_withdraw(available, coin_id, self.config[higher_exchange.name]["{0}_wallet_address".format(coin)], higher_exchange.name)
+        # check wallet if money is in it to the equivalent of what was already in there
+        higher_shares = self.check_for_transaction(higher_exchange_transactions, coin_id, available)
+        current_price = self.arbitrage_sell(lower_exchange, higher_exchange, higher_exchange_transactions, coin, coin_id, higher_shares)
+        profit = (float(current_price)*float(higher_shares)) - (float(available)*float(ask))
+        self.sms_log.log_sms(short_exchange_name=higher_exchange.name, long_exchange_name=lower_exchange.name, profit=profit)
+
+
+    def check_for_transaction(self, wallet, coin, shares_coming):
+        #get account of that coin, when its greater than what it is, sell that size
+        # get available shares in wallet
+        available = wallet.get_account_information(coin)
+        new_available = available
+        shares = shares_coming/2
+        available = available + shares
+        #wait for new shares to come in
+        while available >= new_available:
+            time.sleep(4)
+            new_available = wallet.get_account_information(coin)
+
+        return new_available
+
+    def check_for_deposit(self, wallet, coin, shares):
+        #get available shares
+        new_available = wallet.get_account_information(coin)
+        available = 0.0
+        seconds = 0
+        # wait for wallet to receive shares
+        while new_available <= available:
+            time.sleep(3)
+            print new_available
+            print available
+            new_available = wallet.get_account_information(coin)
+            seconds += 1
+            if seconds >= 20:
+                return 0
+
+        return new_available
+
+    def check_for_withdraw(self, wallet, coin, available):
+        #get available shares
+        new_available = available
+        seconds = 0
+        #wait for shares to be withdraw from account
+        while new_available <= available:
+            time.sleep(3)
+            print new_available
+            print available
+            new_available = wallet.get_account_information(coin)
+            seconds += 1
+            if seconds >= 20:
+                return 0
+
+        return 1
+
+
+    def arbitrage_buy(self, lower_exchange,lower_exchange_transactions, higher_exchange, higher_exchange_transactions, coin, coin_id, spread_tracker):
+        log.debug("{0} price is {1}".format(lower_exchange.name, lower_exchange.ether_USD_ask))
         ask = getattr(lower_exchange, "{0}_USD_ask".format(coin))
         shares = float(self.config['chronos']['wallet_exposure']) / float(ask)
         shares = round(shares, int(self.config[lower_exchange.name]['round']))
-        coin_id = coins[coin]
         print shares
         print self.config['chronos']['wallet_exposure']
         print self.config[lower_exchange.name][coin]
-        #make sure the volume for the price is close to available
-        current_price = lower_exchange.get_limit_price('asks', shares)
+        # make sure the volume for the price is close to available, get price of coin @ top of orderbook
+        current_price = lower_exchange.get_limit_price('asks', shares, self.config[lower_exchange.name][coin])
         print current_price
+        '''
         bid = getattr(higher_exchange, "{0}_USD_bid".format(coin))
         spread_tracker.get_spread(bid, current_price)
         spread_tracker.add_spread_to_array()
@@ -247,111 +293,112 @@ class Chronos(object):
             pass
         else:
             return
-
+        '''
+        current_price = current_price
         shares = float(self.config['chronos']['wallet_exposure']) / float(current_price)
+        #round the shares to prpoer decimal #
         shares = round(shares, int(self.config[lower_exchange.name]['round']))
-
-        print lower_exchange_transactions.buy(self.config[lower_exchange.name][coin], shares, current_price)
-        # get id from this return?
-        # add checking for exchange
+        #perform buy
+        response = lower_exchange_transactions.buy(self.config[lower_exchange.name][coin], shares, current_price)
+        # validate the buy was executed
         available = self.check_for_deposit(lower_exchange_transactions, coin_id, shares)
         log.debug("Account balance after 2 mins : {}".format(available))
         if available == 0:
-            return
-        self.sms_log.log_sms_informing(short_exchange_name=lower_exchange.name, long_exchange_name=higher_exchange.name)
-        print lower_exchange_transactions.crypto_withdraw(available, coin_id, self.config[higher_exchange.name]["wallet_address"])
-        # check wallet if money is in it to the equivalent of what was already in there
-        higher_shares = self.check_for_transaction(higher_exchange_transactions, coin_id, shares)
+            # if the order was never filled
+            lower_exchange_transactions.cancel_order(response)
+            return (available, 0)
+
+        return (available, current_price)
+
+
+    def arbitrage_sell(self, lower_exchange, higher_exchange, higher_exchange_transactions, coin, coin_id, higher_shares):
+
+        # round down the last digit down rather than up
         higher_shares = round(higher_shares, int(self.config[higher_exchange.name]['round']))
         last_digit = str(higher_shares)[-1]
         last_digit = int(last_digit) - 1
         higher_shares = float(str(higher_shares)[:-1] + str(last_digit))
         # when it is , sell it , calculate returns
         # get current price of exchange
-        bid = getattr(higher_exchange, "{0}_USD_bid".format(coin))
-        print higher_exchange_transactions.sell(ask, higher_shares, self.config[higher_exchange.name][coin+'id'])
-        profit = (float(bid)*float(higher_shares)) - (float(shares)*float(ask))
-        self.sms_log.log_sms(short_exchange_name=higher_exchange.name, long_exchange_name=lower_exchange.name, profit=profit)
+        current_price = higher_exchange.get_limit_price('bids', higher_shares, self.config[lower_exchange.name][coin])
+        #get the amount of USD cash in wallet
+        cash_available = higher_exchange_transactions.get_account_information('USD')
+        #sell shares
+        response = higher_exchange_transactions.sell(current_price, higher_shares, self.config[higher_exchange.name][coin + 'id'])
+        #validate the shares were sold and converted to USD
+        available = self.check_for_withdraw(higher_exchange_transactions, coin_id, cash_available)
+        log.debug("Account balance after 2 mins : {}".format(available))
+        value = 0
+        while available == 0:
+            if value == 10:
+                # if taking too long to perform limit, make limit price @ top of order book and sell with fee
+                higher_exchange_transactions.cancel_order(response)
+                current_price = higher_exchange.get_limit_price('bids', higher_shares,self.config[lower_exchange.name][coin])
+                cash_available = higher_exchange_transactions.get_account_information('USD')
+                response = higher_exchange_transactions.sell(current_price, higher_shares, self.config[higher_exchange.name][coin + 'id'])
+                available = self.check_for_withdraw(higher_exchange_transactions, coin_id,  cash_available)
+                value = 0
+            else:
+            # if the order was never filled try again
+                higher_exchange_transactions.cancel_order(response)
+                current_price = higher_exchange.get_limit_price('bids', higher_shares, self.config[lower_exchange.name][coin])
+                current_price = current_price
+                cash_available = higher_exchange_transactions.get_account_information('USD')
+                response = higher_exchange_transactions.sell(current_price, higher_shares, self.config[higher_exchange.name][coin + 'id'])
+                available = self.check_for_withdraw(higher_exchange_transactions, coin_id, cash_available)
+            value += 1
 
-
-    def check_for_transaction(self, wallet, coin, shares_coming):
-        #get account of that coin, when its greater than what it is, sell that size
-
-        available = wallet.get_account_information(coin)
-        new_available = available
-        shares = shares_coming/2
-        available = available + shares
-        while available >= new_available:
-            time.sleep(4)
-            new_available = wallet.get_account_information(coin)
-
-        return new_available
-
-    def check_for_deposit(self, wallet, coin, shares):
-        new_available = wallet.get_account_information(coin)
-
-        available = 0.0
-        seconds = 0
-        while new_available <= available:
-            time.sleep(3)
-            print new_available
-            print available
-            new_available = wallet.get_account_information(coin)
-            seconds += 1
-            if seconds >= 40:
-                return 0
-
-        return new_available
+        return current_price
 
 
     def do_fake_arbitrage(self, short_exchange, long_exchange, excel, spread_tracker, coin):
-        """
-        Performs an arbitrage on a given opportunity between two exchanges and performs
-        fake simulated transactions
-        :param short_exchange:
-        :param long_exchange:
-        :param excel:
-        :param spread_tracker:
-        :return:
-        """
-        exchange_short = short_exchange.start_transaction(coin)
-        exchange_long = long_exchange.start_transaction(coin)
+            """
+            Performs an arbitrage on a given opportunity between two exchanges and performs
+            fake simulated transactions
+            :param short_exchange:
+            :param long_exchange:
+            :param excel:
+            :param spread_tracker:
+            :return:
+            """
+            exchange_short = short_exchange.start_transaction(coin)
+            exchange_long = long_exchange.start_transaction(coin)
 
-        #TODO have this automatically happen when start transaction gets called through configurations
-        exchange_short.short_sell = getattr(short_exchange, "{0}_USD_bid".format(coin))
-        exchange_short.share_values = int(self.config['chronos']['wallet_exposure'])
-        exchange_short.start_arbitrage()
+            #TODO have this automatically happen when start transaction gets called through configurations
+            exchange_short.short_sell = getattr(short_exchange, "{0}_USD_bid".format(coin))
+            exchange_short.share_values = int(self.config['chronos']['wallet_exposure'])
+            exchange_short.start_arbitrage()
 
-        exchange_long.buy = getattr(long_exchange, "{0}_USD_ask".format(coin))
-        exchange_long.share_values = int(self.config['chronos']['wallet_exposure'])
-        exchange_long.start_arbitrage()
+            exchange_long.buy = getattr(long_exchange, "{0}_USD_ask".format(coin))
+            exchange_long.share_values = int(self.config['chronos']['wallet_exposure'])
+            exchange_long.start_arbitrage()
 
-        #excel.log_excel_enter(short_shares=exchange_short.shares,
-         #                     short_coin=short_exchange.litecoin_USD_lasttrade,
-          #                    long_shares=exchange_long.shares,
-           #                   long_coin=long_exchange.litecoin_USD_lasttrade)
+            #excel.log_excel_enter(short_shares=exchange_short.shares,
+             #                     short_coin=short_exchange.litecoin_USD_lasttrade,
+              #                    long_shares=exchange_long.shares,
+               #                   long_coin=long_exchange.litecoin_USD_lasttrade)
 
-        self.wait_for_exit(short_exchange, long_exchange, excel, spread_tracker, coin)
+            self.wait_for_exit(short_exchange, long_exchange, excel, spread_tracker, coin)
 
-        exchange_short.buy_back_price = getattr(short_exchange, "{0}_USD_ask".format(coin))
-        exchange_short.share_values = int(self.config['chronos']['wallet_exposure'])
-        profit1 = exchange_short.end_arbitrage()
+            exchange_short.buy_back_price = getattr(short_exchange, "{0}_USD_ask".format(coin))
+            exchange_short.share_values = int(self.config['chronos']['wallet_exposure'])
+            profit1 = exchange_short.end_arbitrage()
 
-        exchange_long.sell_price = getattr(long_exchange, "{0}_USD_bid".format(coin))
-        exchange_long.share_values = int(self.config['chronos']['wallet_exposure'])
-        profit2 = exchange_long.end_arbitrage()
-        total_profit = (float(profit1) + float(profit2))
-        #excel.log_excel_exit(short_shares=exchange_short.new_shares,
-           #                   short_coin=short_exchange.litecoin_USD_lasttrade,
-            #                  long_shares=exchange_long.shares,
-             #                 long_coin=long_exchange.litecoin_USD_lasttrade,
-              #               profit=total_profit)
+            exchange_long.sell_price = getattr(long_exchange, "{0}_USD_bid".format(coin))
+            exchange_long.share_values = int(self.config['chronos']['wallet_exposure'])
+            profit2 = exchange_long.end_arbitrage()
+            total_profit = (float(profit1) + float(profit2))
+            #excel.log_excel_exit(short_shares=exchange_short.new_shares,
+               #                   short_coin=short_exchange.litecoin_USD_lasttrade,
+                #                  long_shares=exchange_long.shares,
+                 #                 long_coin=long_exchange.litecoin_USD_lasttrade,
+                  #               profit=total_profit)
 
 
-        #print "Profitited : {0}".format((float(profit1) + float(profit2)))
-        log.debug('Bot has profitted ${0}'.format(total_profit))
-        self.sms_log.log_sms(short_exchange_name=short_exchange.name, long_exchange_name=long_exchange.name, profit=total_profit)
-        #voice.send_sms(6313971667, 'Profit of ${0} with {1} as short and {2} as long'.format(total_profit, short_exchange.name,long_exchange.name))
+            #print "Profitited : {0}".format((float(profit1) + float(profit2)))
+            log.debug('Bot has profitted ${0}'.format(total_profit))
+            self.sms_log.log_sms(short_exchange_name=short_exchange.name, long_exchange_name=long_exchange.name, profit=total_profit)
+            #voice.send_sms(6313971667, 'Profit of ${0} with {1} as short and {2} as long'.format(total_profit, short_exchange.name,long_exchange.name))
 
 
     ##################
@@ -401,11 +448,9 @@ class Chronos(object):
             array.append(spread)
 
 
-
-
     ##################
     #Exchange threads#
-    ##################
+    #################3
 
     def start_kraken_thread(self):
         """

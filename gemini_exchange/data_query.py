@@ -23,6 +23,27 @@ class GeminiCoinData(CommonCoinData):
         self.growth_rate = 0
         super(GeminiCoinData, self).__init__(exchange=self, request_duration=REQUEST_DURATION)
 
+    def get_limit_price(self, type, order_volume, coin):
+        """
+        Gets the limit price of an order by adding up each order until it reaches total volume
+        once it reaches total volume exit and return the price of that order
+        :return:
+        """
+
+        order_book = self.gemini.get_order_book(coin)
+
+        total_volume = 0.0
+        current_price = 0.0
+        entries = order_book[type]
+        current_price, volume, order_id = entries[0]
+        for price, volume, timestamp in order_book[type]:
+            total_volume += float(volume)
+            if total_volume >= float(order_volume):
+                print current_price
+                return float(current_price)
+
+        return None
+
     def update_bitcoins(self):
         bitcoin = self.gemini.get_ticker(self.bitcoin_key)
         self.bitcoin_USD_ask= bitcoin[self.ask_key]
