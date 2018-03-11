@@ -3,6 +3,8 @@ REQUEST_DURATION = 3.5
 LTCUSD = 'XLTCZUSD'
 XBTUSD = 'XXBTZUSD'
 ETHUSD = 'XETHZUSD'
+from chronos_logging.logger import log
+
 
 
 class KrakenCoinData(CommonCoinData):
@@ -25,6 +27,7 @@ class KrakenCoinData(CommonCoinData):
         self.making_transaction = 0
         self.name = 'kraken'
         self.order_volume = None
+	self.json = None
         self.keys = {'LTCUSD': LTCUSD, 'XBTUSD': XBTUSD, 'ETHUSD': ETHUSD}
         super(KrakenCoinData, self).__init__(exchange=self, request_duration=REQUEST_DURATION)
 
@@ -119,7 +122,7 @@ class KrakenCoinData(CommonCoinData):
 
     def update_coins(self, coins):
         json = self.kraken.query_public('Ticker', {'pair': 'LTCUSD,XBTUSD,ETHUSD'})
-
+	self.json = json
         if 'ether' in coins:
             self.ether_USD_ask = float(self.get_coin_ticker_information(result=json['result'],
                                                                         coin=self.ether_key,

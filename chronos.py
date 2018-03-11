@@ -24,6 +24,7 @@ from collections import OrderedDict
 
 class Chronos(object):
     def __init__(self):
+        self.refund = 0
         self.threads = []
         self.configs = defaultdict(dict)
         self.config = parse_config()
@@ -40,9 +41,9 @@ class Chronos(object):
         self.spread_exit = float(self.config['chronos']['spread_exit'])
         self.max_array_size = 2
         self.book = None
-        self.start_arbitrage_deamon(self.geminiexchange, self.coinbaseexchange, 'ether')
-        self.start_arbitrage_deamon(self.coinbaseexchange, self.krakenexchange,  'ether')
-        self.start_arbitrage_deamon(self.geminiexchange, self.krakenexchange, 'ether')
+        #self.start_arbitrage_deamon(self.geminiexchange, self.coinbaseexchange, 'ether')
+        #self.start_arbitrage_deamon(self.coinbaseexchange, self.krakenexchange,  'ether')
+        #self.start_arbitrage_deamon(self.geminiexchange, self.krakenexchange, 'ether')
         self.start_arbitrage_deamon(self.coinbaseexchange, self.krakenexchange, 'litecoin')
         self.disabled_exchanges=['gemini']
         self.tracker = []
@@ -50,10 +51,18 @@ class Chronos(object):
         if not os.path.exists('./results/excels/{}'.format(self.time)):
             os.makedirs('./results/excels/{}'.format(self.time))
         self.thread_killer()
-        self.query_coin_data()
-        self.refund = 0
+        self.query = True        
+	self.start_query_deamon()
 
+    
 
+    def start_query_deamon(self):
+        
+        test = threading.Thread(target=self.query_coin_data, args=())
+        test.daemon = True
+        test.start()
+        self.threads.append(test)
+        return
 
     def start_arbitrage_deamon(self, high_exchange, low_exchange, coin):
         """
@@ -99,19 +108,20 @@ class Chronos(object):
         time.sleep(30)
         while True:
             time.sleep(3)
-            for tracker in self.tracker:
-                exchanges = "{0}/{1}".format(tracker.short_exchange, tracker.long_exchange)
-                self.query_list.append(OrderedDict([("Exchange", exchanges),
+            if self.query:
+            	for tracker in self.tracker:
+                	exchanges = "{0}/{1}".format(tracker.short_exchange, tracker.long_exchange)
+                	self.query_list.append(OrderedDict([("Exchange", exchanges),
                                                     ("Coin", tracker.coin_type),
-                                                    ("Short", tracker.short_coin),
-                                                    ("Long", tracker.long_coin),
+                                                    ("High", tracker.short_coin),
+                                                    ("Low", tracker.long_coin),
                                                     ("Spread", tracker.spread),
                                                     ("Spread w/fees", tracker.spread_with_fees),
                                                     ("Growth Rate", tracker.growth_rate)]))
 
-            print tabulate(self.query_list, headers='keys')
-            print "\n"
-            self.query_list = []
+            	print tabulate(self.query_list, headers='keys')
+            	print "\n"
+            	self.query_list = []
 
 
     def perform_litecoin_arbitrage_thread(self, high_exchange, low_exchange, coin):
@@ -153,10 +163,11 @@ class Chronos(object):
                 log.debug("{0} is higher exchange and ask price is {1}".format(high_exchange.name, high))
                 lower_exchange_transactions = low_exchange.open_wallet()
                 cash = lower_exchange_transactions.get_account_information('USD')
-
                 if cash >= float(self.config['chronos']['wallet_exposure']):
                     self.do_real_arbitrage(lower_exchange=low_exchange, higher_exchange=high_exchange, excel=excel_log,spread_tracker=spread_tracker, coin=coin, refund=True)
-
+                    #self.sms_log.log_sms("Need to rebalance account on : {0}".format(low_exchange.name))
+                else:
+                    self.sms_log.voice.send_sms(4158872108,'Need to rebalance account on : {0}'.format(low_exchange.name))
 
             if entry_check2:
                 # exchange x borrow lite coin, sell it,
@@ -171,8 +182,11 @@ class Chronos(object):
                 log.debug("{0} is higher exchange and ask price is {1}".format(low_exchange.name, low))
                 higher_exchange_transactions = high_exchange.open_wallet()
                 cash = higher_exchange_transactions.get_account_information('USD')
+                
                 if cash >= float(self.config['chronos']['wallet_exposure']):
                     self.do_real_arbitrage(lower_exchange=high_exchange, higher_exchange=low_exchange, excel=excel_log, spread_tracker=spread_tracker1, coin=coin, refund=True)
+                else:
+                    self.sms_log.voice.send_sms(4158872108,'Need to rebalance account on : {0}'.format(high_exchange.name))
 
 
     def wait_for_exit(self, exchange1, exchange2, excel, spread_tracker, coin):
@@ -267,7 +281,7 @@ class Chronos(object):
         lower_exchange_transactions = lower_exchange.open_wallet()
         higher_exchange_transactions = higher_exchange.open_wallet()
         # perform buy and get the updated ask and shares available to withdraw
-        (available, ask) = self.arbitrage_buy(lower_exchange, lower_exchange_transactions, higher_exchange, higher_exchange_transactions, coin, coin_id, spread_tracker, refund)
+        (available, ask, buy_shares) = self.arbitrage_buy(lower_exchange, lower_exchange_transactions, higher_exchange, higher_exchange_transactions, coin, coin_id, spread_tracker, refund)
         # if the buy didnt go through , exit and and enter again when spread is open
         if available == 0:
             #self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Going back to checking")
@@ -278,18 +292,32 @@ class Chronos(object):
         response = lower_exchange_transactions.crypto_withdraw(amount=available, currency=coin_id, crypto_address=self.config[higher_exchange.name]["{0}_wallet_address".format(coin)], exchange_name=higher_exchange.name)
         log.debug(response)
         # check wallet if money is in it to the equivalent of what was already in there
-        self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Checking for withdrawl")
+        self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Checking for withdrawl")
         log.debug("Checking for transactions")
+        higher_exchange.making_transaction = 1
         higher_shares = self.check_for_transaction(higher_exchange_transactions, coin_id, available)
-        self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Starting sell")
-        current_price = self.arbitrage_sell(lower_exchange, higher_exchange, higher_exchange_transactions, coin, coin_id, higher_shares, refund)
-        profit = (float(current_price)*float(higher_shares)) - (float(available)*float(ask))
+        log.debug("Shares have been depositted")
+        self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Starting sell")
+        try:
+            current_price = self.arbitrage_sell(lower_exchange, higher_exchange, higher_exchange_transactions, coin, coin_id, higher_shares, refund)
+        except Exception as e:
+            log.debug(e)
+            raise Exception(e)
+        low_take = (float(buy_shares)*float(ask))
+        low_take = low_take - (ask * float(self.config[lower_exchange.name]['fees']))
+
+        high_take = (float(current_price)*float(higher_shares))
+        high_take = float(high_take - (higher_shares * float(self.config[higher_exchange.name]['fees'])))
+        profit = high_take - low_take
         self.sms_log.log_sms(short_exchange_name=higher_exchange.name, long_exchange_name=lower_exchange.name, profit=profit)
+        '''
         if refund:
             log.debug("Attempting to refund account")
-            #self.start_refund_deamon(higher_exchange=lower_exchange, lower_exchange=higher_exchange, valid_coins=lower_exchange.valid_coins)
-            self.refund_account(higher_exchange=lower_exchange, lower_exchange=higher_exchange, valid_coins=higher_exchange.valid_coins)
-
+            self.start_refund_deamon(higher_exchange=lower_exchange, lower_exchange=higher_exchange, valid_coins=higher_exchange.valid_coins)
+            #self.refund_account(higher_exchange=lower_exchange, lower_exchange=higher_exchange, valid_coins=higher_exchange.valid_coins)
+            log.debug("Refund finished")
+        '''
+        return 1
 
 
     def check_for_transaction(self, wallet, coin, shares_coming):
@@ -362,11 +390,11 @@ class Chronos(object):
         print self.config['chronos']['wallet_exposure']
         print self.config[lower_exchange.name][coin]
         lower_exchange.making_transaction = 1
-        higher_exchange.making_transaction = 1
+        #higher_exchange.making_transaction = 1
         # make sure the volume for the price is close to available, get price of coin @ top of orderbook
         current_price = lower_exchange.get_limit_price('bids', shares, self.config[lower_exchange.name][coin])
         print current_price
-        self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Re-checking spread")
+        self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Re-checking spread")
 
         bid = getattr(higher_exchange, "{0}_USD_bid".format(coin))
         spread_tracker.get_spread(bid, current_price,
@@ -388,7 +416,7 @@ class Chronos(object):
             log.debug("Spread is no longer valid")
 
             lower_exchange.making_transaction = 0
-            return (0 , 0)
+            return (0 , 0, 0)
 
         if not refund:
             current_price = current_price - .02
@@ -399,24 +427,24 @@ class Chronos(object):
         #round the shares to prpoer decimal #
         shares = round(shares, int(self.config[lower_exchange.name]['round']))
         #perform buy
-        self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Buying")
-        available = higher_exchange_transactions.get_account_information(coin_id)
+        self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Buying")
+        available = lower_exchange_transactions.get_account_information(coin_id)
         log.debug("Buying {0} shares @ {1}".format(shares, current_price))
         response = lower_exchange_transactions.buy(self.config[lower_exchange.name][coin], shares, current_price)
         # validate the buy was executed
         log.debug(response)
-        self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Checking for deposit")
+        self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Checking for deposit")
         log.debug("Checking if shares deposited")
         available = self.check_for_deposit(lower_exchange_transactions, coin_id, shares, available)
         log.debug("Account balance after 2 mins : {}".format(available))
         if available == 0:
             # if the order was never filled
-            self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Cancelling order")
+            self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Cancelling order")
             lower_exchange_transactions.cancel_order(response)
             lower_exchange.making_transaction = 0
-            return (available, 0)
+            return (available, 0, shares)
         lower_exchange.making_transaction = 0
-        return (available, current_price)
+        return (available, current_price, shares)
 
 
     def arbitrage_sell(self, lower_exchange, higher_exchange, higher_exchange_transactions, coin, coin_id, higher_shares, refund):
@@ -437,18 +465,18 @@ class Chronos(object):
         current_price = round(current_price, 2)
         cash_available = higher_exchange_transactions.get_account_information('USD')
         #sell shares
-        self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Selling")
+        self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Selling")
         log.debug("Selling {0} shares @ {1}".format(higher_shares, current_price))
         response = higher_exchange_transactions.sell(current_price, higher_shares, self.config[higher_exchange.name][coin + 'id'])
         #validate the shares were sold and converted to USD
         log.debug(response)
-        self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Checking sell off")
+        self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Checking sell off")
         log.debug("Checking if a widthdraw occured")
         available = self.check_for_withdraw(higher_exchange_transactions, 'USD', cash_available)
         log.debug("Account balance after 2 mins : {}".format(available))
         #value = 0
         while available == 0:
-            self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Sell did not work")
+            self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Sell did not work")
             '''
             if value == 10:
                 # if taking too long to perform limit, make limit price @ top of order book and sell with fee
@@ -475,7 +503,7 @@ class Chronos(object):
             available = self.check_for_withdraw(higher_exchange_transactions, 'USD', cash_available)
             #value += 1
 
-        self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Sold")
+        self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Sold")
         higher_exchange.making_transaction = 0
 
         return current_price
@@ -538,7 +566,7 @@ class Chronos(object):
                 for x in self.tracker:
                     if refund in x.short_exchange:
                         self.tracker.remove(x)
-                self.sms_log.log_sms_test(higher_exchange, lower_exchange, "Refund spread opened")
+                self.sms_log.log_sms_test(higher_exchange.name, lower_exchange.name, "Refund spread opened")
                 coin_spreads = sorted(coin_spread.iteritems(), key=lambda (k,v): (v,k))
                 coin, spread = coin_spreads[-1]
                 log.debug("Entering with {0} coin with spread {1}".format(coin, spread))

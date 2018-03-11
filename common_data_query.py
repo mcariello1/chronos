@@ -33,6 +33,11 @@ class CommonCoinData(object):
                 except Exception as e:
                     log.debug(e)
                     log.debug('Couldnt update coins for {0}'.format(self.exchange.name))
+                    if self.exchange.name == 'kraken':
+
+		        log.debug(self.exchange.json)
+     
                 time.sleep(self.request_duration)
             else:
                 log.debug("Transaction in progress, querying turned off for {0}".format(self.exchange.name))
+                time.sleep(2)

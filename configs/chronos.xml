@@ -1,7 +1,7 @@
 <chronosconfig>
     <exchange name="chronos">
         <global name="growth_entry" value="0"/>
-        <global name="spread_entry" value =".4"/>
+        <global name="spread_entry" value =".5"/>
         <global name="growth_exit" value ="0"/>
         <global name="spread_exit" value =".5"/>
         <global name="wallet_exposure" value="100"/>
@@ -16,8 +16,10 @@
         <global name="limit_fees" value="0"/>
         <global name="ether" value ="ETH-USD"/>
         <global name="etherid" value ="ETH-USD"/>
+        <global name="litecoinid" value="LTC-USD"/>
+        <global name="bitcoinid" value="BTC-USD"/>
         <global name="round" value = "8"/>
-        <global name="fees" value = "0.0"/>
+        <global name="fees" value = ".003"/>
         <global name="ether_withdraw_fees" value = "0"/>
         <global name="litecoin_withdraw_fees" value = "0"/>
         <global name="bitcoin_withdraw_fees" value = "0"/>
@@ -36,6 +38,8 @@
         <global name="bitcoin" value ="btcusd"/>
         <global name="ether" value ="ethusd"/>
         <global name="etherid" value ="ETHUSD"/>
+        <global name="litecoinid" value="LTCUSD"/>
+        <global name="bitcoinid" value="BTCUSD"/>
         <global name="round" value = "6"/>
         <global name="fees" value = ".0020"/>
         <global name="limit_fees" value = ".0020"/>
@@ -60,10 +64,12 @@
         <global name="litecoin" value ="XLTCZUSD"/>
         <global name="ether" value ="XETHZUSD"/>
         <global name="etherid" value ="XETHZUSD"/>
+        <global name="litecoinid" value="XLTCZUSD"/>
+        <global name="bitcoinid" value="XBTCZUSD"/>
         <global name="ether_wallet_address" value ="0x992869c93dFcAFDF4BDb06E1456c7B0BA4846603"/>
         <global name="litecoin_wallet_address" value="LXcEimKY9JwJomUKeicp76k6LZ6x1ZYQFT"/>
         <global name="bitcoin_wallet_address" value="3Jx4WbGjpiV6kwxVW7wMCVovr3vpfCHwWZ"/>
-        <global name="key_path" value="/Users/mcariello/PycharmProjects/chronos-kairos/chronos/kraken_exchange/kraken.key"/>
+        <global name="key_path" value="/home/ec2-user/chronos/kraken_exchange/kraken.key"/>
     </exchange>
 
     <exchange name="poloniex">

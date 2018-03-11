@@ -31,7 +31,7 @@ class Transactions(object):
         return json
 
 
-    def crypto_withdraw(self, amount,coin, crypto_address, exchange_name):
+    def crypto_withdraw(self, amount,currency, crypto_address, exchange_name):
         '''
         Withdraws currency on the gdax exchange to another wallet
         :param amount:
@@ -45,9 +45,9 @@ class Transactions(object):
                 'LTCgemini':'gemini_litcoin',
                 'BTCgdax':'gdax_bitcoin',
                 'BTCgemini': 'gemini_bitcoin'}
-        key = coin+exchange_name
+        key = currency+exchange_name
         address = list[key]
-        json = self.auth_client.query_private('Withdraw', {'asset': coin, 'key': address, 'amount': amount})
+        json = self.auth_client.query_private('Withdraw', {'asset': currency, 'key': address, 'amount': amount})
         return json
 
     def get_account_information(self, coin):
